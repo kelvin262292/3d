@@ -1,0 +1,146 @@
+# Cấu hình CodeRabbit để tự động áp dụng code đã sửa
+# File này phải được đặt ở thư mục gốc của repository
+
+# Ngôn ngữ chính của dự án
+language: "vi"
+
+# Hướng dẫn về tone và phong cách review
+tone_instructions: |
+  Hãy sử dụng tiếng Việt trong các review và comment.
+  Đưa ra các gợi ý cải thiện code một cách chi tiết và xây dựng.
+  Tập trung vào việc cải thiện chất lượng code, bảo mật và hiệu suất.
+
+# Bật tính năng early access để sử dụng các tính năng mới nhất
+early_access: true
+
+# Cấu hình cho code reviews
+reviews:
+  # Bật tự động review cho mọi pull request
+  auto_review: true
+  
+  # Cấu hình cho việc tự động áp dụng các sửa đổi
+  auto_apply_fixes: true
+  
+  # Yêu cầu thay đổi workflow khi có vấn đề nghiêm trọng
+  request_changes_workflow: true
+  
+  # Hướng dẫn review theo đường dẫn file
+  path_instructions:
+    - path: "**/*.js"
+      instructions: |
+        Review code JavaScript theo Google JavaScript Style Guide.
+        Kiểm tra:
+        - Cú pháp và logic
+        - Performance và memory leaks
+        - Security vulnerabilities
+        - Code readability và maintainability
+        
+    - path: "**/*.ts"
+      instructions: |
+        Review code TypeScript với focus vào:
+        - Type safety và proper typing
+        - Interface và class design
+        - Error handling
+        - Code organization
+        
+    - path: "**/*.py"
+      instructions: |
+        Review code Python theo PEP 8 standards:
+        - Code formatting và naming conventions
+        - Function và class design
+        - Error handling và logging
+        - Performance optimization
+        
+    - path: "**/*.java"
+      instructions: |
+        Review code Java với focus vào:
+        - Object-oriented design principles
+        - Exception handling
+        - Memory management
+        - Thread safety
+        
+    - path: "tests/**/*"
+      instructions: |
+        Review test code với focus vào:
+        - Test coverage và completeness
+        - Test naming và organization
+        - Mock và stub usage
+        - Performance của test cases
+        
+    - path: "docs/**/*"
+      instructions: |
+        Review documentation với focus vào:
+        - Clarity và accuracy
+        - Completeness
+        - Examples và use cases
+        - Formatting và structure
+
+# Cấu hình chat với CodeRabbit
+chat:
+  # Bật tính năng chat tự động
+  auto_reply: true
+  
+  # Ngôn ngữ cho chat
+  language: "vi"
+
+# Cấu hình knowledge base
+knowledge_base:
+  # Bật tính năng học từ feedback
+  learnings: true
+  
+  # Bật tính năng tối ưu hóa dựa trên lịch sử
+  opt_out_knowledge_base: false
+
+# Cấu hình code generation
+code_generation:
+  # Cấu hình cho docstrings
+  docstrings:
+    # Bật tự động tạo docstrings
+    enabled: true
+    
+    # Hướng dẫn theo đường dẫn
+    path_instructions:
+      - path: "**/*.py"
+        instructions: |
+          Tạo docstrings theo Google style cho Python.
+          Bao gồm:
+          - Mô tả ngắn gọn về function/class
+          - Args: Mô tả các tham số
+          - Returns: Mô tả giá trị trả về
+          - Raises: Mô tả các exception có thể xảy ra
+          - Examples: Ví dụ sử dụng nếu cần thiết
+          
+      - path: "**/*.js"
+        instructions: |
+          Tạo JSDoc comments cho JavaScript.
+          Bao gồm:
+          - @description: Mô tả function
+          - @param: Mô tả parameters
+          - @returns: Mô tả return value
+          - @throws: Mô tả exceptions
+          - @example: Ví dụ sử dụng
+          
+      - path: "**/*.ts"
+        instructions: |
+          Tạo TSDoc comments cho TypeScript.
+          Tận dụng type information có sẵn.
+          Focus vào business logic và usage examples.
+
+# Cấu hình tools và static analysis
+tools:
+  # Bật các essential security rules
+  ast-grep:
+    essential_rules: true
+    
+  # Cấu hình cho các linters khác
+  eslint:
+    enabled: true
+  
+  prettier:
+    enabled: true
+    
+  pylint:
+    enabled: true
+    
+  black:
+    enabled: true
