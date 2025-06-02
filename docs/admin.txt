@@ -1,0 +1,423 @@
+# Giao Diện Admin Dashboard (Chi Tiết Tuyệt Đối)
+
+Tài liệu này cung cấp một mô tả **chi tiết tuyệt đối** về giao diện Admin Dashboard, bao gồm kiến trúc, các thành phần, luồng dữ liệu, triết lý thiết kế, và hướng dẫn cho việc phát triển và bảo trì trong tương lai. Mục tiêu là trang bị cho bất kỳ nhà phát triển nào kiến thức cần thiết để hiểu sâu và đóng góp hiệu quả cho dự án.
+
+## Mục Lục
+
+- [1. Tổng Quan Dự Án](#1-tổng-quan-dự-án)
+  - [1.1. Mục Đích và Đối Tượng](#11-mục-đích-và-đối-tượng)
+  - [1.2. Mục Tiêu Chính](#12-mục-tiêu-chính)
+  - [1.3. Đặc Điểm SPA](#13-đặc-điểm-spa)
+- [2. Công Nghệ Sử Dụng (Tech Stack)](#2-công-nghệ-sử-dụng-tech-stack)
+  - [2.1. Chi Tiết Từng Công Nghệ](#21-chi-tiết-từng-công-nghệ)
+- [3. Cấu Trúc Dự Án Chi Tiết](#3-cấu-trúc-dự-án-chi-tiết)
+  - [3.1. Giải Thích Từng File và Thư Mục](#31-giải-thích-từng-file-và-thư-mục)
+- [4. Tính Năng Chi Tiết](#4-tính-năng-chi-tiết)
+  - [4.1. Phân Tích Từng Tính Năng](#41-phân-tích-từng-tính-năng)
+- [5. Hướng Dẫn Bắt Đầu Chi Tiết](#5-hướng-dẫn-bắt-đầu-chi-tiết)
+  - [5.1. Yêu Cầu Môi Trường](#51-yêu-cầu-môi-trường)
+  - [5.2. Các Bước Khởi Chạy](#52-các-bước-khởi-chạy)
+  - [5.3. Gỡ Lỗi Cơ Bản](#53-gỡ-lỗi-cơ-bản)
+- [6. Các Thành Phần Chính & Logic Hoạt Động Sâu](#6-các-thành-phần-chính--logic-hoạt-động-sâu)
+  - [6.1. Hệ Thống Điều Hướng (Navigation)](#61-hệ-thống-điều-hướng-navigation)
+  - [6.2. Hiển Thị Dữ Liệu (Data Display)](#62-hiển-thị-dữ-liệu-data-display)
+  - [6.3. Hệ Thống Biểu Đồ (Charting)](#63-hệ-thống-biểu-đồ-charting)
+  - [6.4. Triết Lý Thiết Kế Giao Diện & Tạo Kiểu (UI/UX Design Philosophy & Styling)](#64-triết-lý-thiết-kế-giao-diện--tạo-kiểu-uiux-design-philosophy--styling)
+    - [6.4.1. Phong Cách Giao Diện Tổng Thể](#641-phong-cách-giao-diện-tổng-thể)
+    - [6.4.2. Font Chữ (Typography)](#642-font-chữ-typography)
+    - [6.4.3. Bảng Màu Chi Tiết (Color Palette)](#643-bảng-màu-chi-tiết-color-palette)
+    - [6.4.4. Hệ Thống Bố Cục (Layout System)](#644-hệ-thống-bố-cục-layout-system)
+    - [6.4.5. Icon (Iconography)](#645-icon-iconography)
+    - [6.4.6. Khoảng Trắng và Tính Nhất Quán](#646-khoảng-trắng-và-tính-nhất-quán)
+- [7. Quy Trình Thêm Trang/Tính Năng Mới (Chi Tiết)](#7-quy-trình-thêm-trangtính-năng-mới-chi-tiết)
+- [8. Hướng Dẫn Bảo Trì Ứng Dụng Chuyên Sâu](#8-hướng-dẫn-bảo-trì-ứng-dụng-chuyên-sâu)
+- [9. Quản Lý API Key (Định Hướng Tương Lai)](#9-quản-lý-api-key-định-hướng-tương-lai)
+
+---
+
+## 1. Tổng Quan Dự Án
+
+### 1.1. Mục Đích và Đối Tượng
+Admin Dashboard này được xây dựng như một công cụ trực quan hóa dữ liệu và quản lý nội bộ. Đối tượng người dùng chính là các quản trị viên hệ thống, nhà phân tích dữ liệu, hoặc bất kỳ ai cần theo dõi và tương tác với các chỉ số hoạt động cốt lõi của một doanh nghiệp hoặc ứng dụng.
+
+### 1.2. Mục Tiêu Chính
+- **Trực quan hóa dữ liệu**: Hiển thị các số liệu phức tạp dưới dạng biểu đồ và thống kê dễ hiểu.
+- **Giao diện tập trung**: Cung cấp một nơi duy nhất để truy cập các thông tin quan trọng.
+- **Khả năng mở rộng**: Thiết kế module cho phép dễ dàng thêm các trang và tính năng mới khi nhu cầu phát triển.
+- **Trải nghiệm người dùng tốt**: Đảm bảo giao diện nhanh, đáp ứng và dễ sử dụng.
+
+### 1.3. Đặc Điểm SPA
+Đây là một **Ứng Dụng Trang Đơn (Single-Page Application - SPA)**. Điều này có nghĩa là toàn bộ ứng dụng được tải một lần duy nhất. Khi người dùng điều hướng giữa các trang, chỉ có nội dung của phần chính được cập nhật động bằng JavaScript, thay vì tải lại toàn bộ trang HTML từ máy chủ. Điều này mang lại trải nghiệm người dùng mượt mà và nhanh hơn.
+
+---
+
+## 2. Công Nghệ Sử Dụng (Tech Stack)
+
+### 2.1. Chi Tiết Từng Công Nghệ
+
+- **React 19**:
+    - **Lý do chọn**: Thư viện JavaScript phổ biến để xây dựng giao diện người dùng theo kiến trúc component. Giúp tạo ra các UI phức tạp từ các mảnh nhỏ, độc lập và có thể tái sử dụng (components). React 19 mang lại các cải tiến về hiệu suất và API mới.
+    - **Lợi ích**: Quản lý trạng thái hiệu quả, DOM ảo giúp tối ưu hóa cập nhật giao diện, cộng đồng lớn và hệ sinh thái phong phú.
+
+- **TypeScript**:
+    - **Lý do chọn**: Là một superset của JavaScript, bổ sung kiểu tĩnh tùy chọn.
+    - **Lợi ích**: Giúp phát hiện lỗi sớm hơn trong quá trình phát triển (thay vì lúc chạy), cải thiện khả năng đọc và bảo trì mã nguồn, hỗ trợ tốt hơn từ các IDE (tự động hoàn thành, gợi ý kiểu), và làm cho việc cộng tác trong các dự án lớn trở nên dễ dàng hơn.
+
+- **Tailwind CSS (qua CDN)**:
+    - **Lý do chọn**: Framework CSS theo hướng utility-first, cho phép xây dựng giao diện nhanh chóng bằng cách áp dụng trực tiếp các lớp tiện ích trong HTML/JSX.
+    - **Lợi ích**: Tùy biến cao, không cần viết CSS tùy chỉnh nhiều, giảm kích thước file CSS cuối cùng (nếu được purge đúng cách, tuy nhiên CDN không purge), nhất quán trong thiết kế. Cấu hình Tailwind trực tiếp trong `index.html` cho phép mở rộng theme cơ bản (ví dụ: thêm màu `slate-850`).
+
+- **Recharts (qua esm.sh)**:
+    - **Lý do chọn**: Thư viện biểu đồ cho React, dựa trên các component khai báo.
+    - **Lợi ích**: Dễ dàng tích hợp với React, cung cấp nhiều loại biểu đồ phổ biến (đường, cột, tròn,...), tùy biến cao, hỗ trợ thiết kế đáp ứng (responsive) thông qua component `ResponsiveContainer`.
+
+- **ES Modules (Native JavaScript Modules)**:
+    - **Lý do chọn**: Tiêu chuẩn module hóa chính thức của JavaScript, được hỗ trợ bởi các trình duyệt hiện đại.
+    - **Lợi ích**: Cho phép tổ chức mã nguồn thành các file nhỏ hơn, dễ quản lý. Trong dự án này, việc sử dụng ES Modules kết hợp với `importmap` trong `index.html` giúp loại bỏ sự cần thiết của một bước build phức tạp (bundling) cho một ứng dụng đơn giản, cho phép chạy trực tiếp từ file.
+
+---
+
+## 3. Cấu Trúc Dự Án Chi Tiết
+
+Dưới đây là mô tả chi tiết về vai trò của từng file và thư mục quan trọng:
+
+```
+.
+├── README.md               # Tài liệu tổng quan dự án (tiếng Anh)
+├── README.vi.md            # Tài liệu chi tiết này (tiếng Việt)
+├── index.html              # File HTML gốc, điểm vào chính của ứng dụng.
+│                           # - Chứa cấu trúc HTML cơ bản.
+│                           # - Tải Tailwind CSS từ CDN.
+│                           # - Định nghĩa cấu hình Tailwind CSS tùy chỉnh nhỏ.
+│                           # - Khai báo `importmap` để quản lý các module React và Recharts từ esm.sh.
+│                           # - Chứa div#root nơi React sẽ render ứng dụng.
+│                           # - Tải script chính index.tsx dưới dạng module.
+├── index.tsx               # Điểm khởi đầu của ứng dụng React.
+│                           # - Import React, ReactDOM và component App chính.
+│                           # - Tìm element #root trong DOM.
+│                           # - Sử dụng ReactDOM.createRoot() để render component App vào #root.
+│                           # - Bao bọc App trong <React.StrictMode> để kích hoạt các kiểm tra và cảnh báo bổ sung.
+├── metadata.json           # File JSON chứa metadata của ứng dụng.
+│                           # - Hiện tại chứa tên và mô tả.
+│                           # - Có thể mở rộng để chứa thông tin cho Progressive Web App (PWA) manifest,
+│                           #   hoặc khai báo các quyền truy cập cần thiết (ví dụ: camera, microphone).
+├── App.tsx                 # Component React cấp cao nhất, đóng vai trò là bộ khung của ứng dụng.
+│                           # - Quản lý trạng thái `activePage` để xác định trang nào đang được hiển thị.
+│                           # - Render Sidebar và khu vực nội dung chính.
+│                           # - Thực hiện "routing" đơn giản bằng cách hiển thị có điều kiện các component trang
+│                           #   dựa trên giá trị của `activePage`.
+├── types.ts                # Nơi tập trung định nghĩa các kiểu dữ liệu TypeScript dùng chung trong toàn ứng dụng.
+│                           # - Chứa các interface cho props của component (ví dụ: StatCardProps, NavItemType),
+│                           #   cấu trúc dữ liệu (ví dụ: Product, Order, Customer, ChartDataItem).
+│                           # - Giúp đảm bảo tính nhất quán và an toàn kiểu dữ liệu.
+├── constants.ts            # Chứa các hằng số và dữ liệu mẫu được sử dụng trong ứng dụng.
+│                           # - `NAV_ITEMS`: Mảng các đối tượng định nghĩa các mục trong sidebar (tên, icon, path).
+│                           # - Dữ liệu mẫu cho biểu đồ (ví dụ: `USER_ACTIVITY_LINE_CHART_DATA`).
+│                           # - Dữ liệu mẫu cho các trang (ví dụ: `mockProducts`, `mockOrders` - có thể chuyển hết vào đây).
+└── components/               # Thư mục chứa tất cả các component React.
+    ├── Dashboard.tsx       # Component cho trang Dashboard chính. Hiển thị tổng quan các chỉ số và biểu đồ.
+    ├── ProductsPage.tsx    # Component cho trang quản lý Sản phẩm. Hiển thị danh sách sản phẩm dưới dạng bảng.
+    ├── OrdersPage.tsx      # Component cho trang quản lý Đơn hàng. Hiển thị danh sách đơn hàng.
+    ├── CustomersPage.tsx   # Component cho trang quản lý Khách hàng. Hiển thị danh sách khách hàng.
+    ├── AnalyticsPage.tsx   # Component cho trang Phân tích. Hiển thị các biểu đồ chi tiết.
+    ├── Sidebar.tsx         # Component thanh điều hướng bên trái. Hiển thị logo/tên và danh sách các mục điều hướng.
+    ├── StatCard.tsx        # Component tái sử dụng để hiển thị một thẻ thống kê nhỏ (ví dụ: Tổng người dùng).
+    ├── ChartCard.tsx       # Component tái sử dụng để bao bọc một biểu đồ, cung cấp tiêu đề và thông tin bổ sung.
+    └── icons/              # Thư mục chứa các component icon SVG.
+        │                   # - Mỗi icon là một component React riêng biệt (ví dụ: HomeIcon.tsx).
+        │                   # - Giúp dễ dàng quản lý và sử dụng icons trong ứng dụng.
+        ├── BoxIcon.tsx
+        ├── ChartBarIcon.tsx
+        ├── HomeIcon.tsx
+        ├── ShoppingBagIcon.tsx
+        └── UsersIcon.tsx
+```
+
+---
+
+## 4. Tính Năng Chi Tiết
+
+### 4.1. Phân Tích Từng Tính Năng
+
+- **Thiết Kế Đáp Ứng (Responsive Design)**:
+    - Giao diện được xây dựng để tự động điều chỉnh và hiển thị tốt trên nhiều kích thước màn hình, từ điện thoại di động, máy tính bảng đến máy tính để bàn.
+    - Tailwind CSS cung cấp các lớp tiện ích responsive (ví dụ: `sm:`, `md:`, `lg:`) được sử dụng rộng rãi để thay đổi layout, kích thước, ẩn/hiện các phần tử dựa trên điểm dừng (breakpoints). Ví dụ, sidebar có thể thu gọn hoặc cách hiển thị các thẻ `StatCard` thay đổi từ một cột sang nhiều cột.
+
+- **Chủ Đề Tối (Dark Theme)**:
+    - Toàn bộ ứng dụng sử dụng một chủ đề màu tối, chủ yếu dựa trên bảng màu `slate` của Tailwind CSS.
+    - Mục đích: Giảm mỏi mắt khi sử dụng trong thời gian dài, mang lại vẻ ngoài hiện đại và chuyên nghiệp. Các màu nhấn (ví dụ: `sky`, `green`, `red`) được sử dụng để làm nổi bật các thông tin quan trọng hoặc các hành động.
+
+- **Biểu Đồ Tương Tác (Interactive Charts)**:
+    - Sử dụng thư viện Recharts để vẽ các biểu đồ đường (Line Chart), cột (Bar Chart), tròn (Pie Chart), miền (Area Chart).
+    - **Tương tác**: Người dùng có thể di chuột qua các điểm dữ liệu trên biểu đồ để xem thông tin chi tiết trong `Tooltip` tùy chỉnh.
+    - **Khả năng mở rộng của Recharts**: Mặc dù hiện tại chưa triển khai, Recharts hỗ trợ các tính năng tương tác nâng cao hơn như zoom, pan, brush (chọn một khoảng dữ liệu) nếu cần thiết trong tương lai.
+
+- **Component Module Hóa (Component Modularity)**:
+    - Giao diện được chia thành các component nhỏ, độc lập và có thể tái sử dụng (ví dụ: `StatCard`, `ChartCard`, các icons).
+    - **Lợi ích**: Dễ bảo trì, dễ kiểm thử, tái sử dụng, phát triển song song.
+
+- **Điều Hướng Theo Trang (Page-Based Navigation)**:
+    - **Dashboard**: Trang tổng quan với KPIs và biểu đồ tóm tắt.
+    - **Products (Sản phẩm)**: Trang quản lý sản phẩm dạng bảng.
+    - **Orders (Đơn hàng)**: Trang theo dõi đơn hàng dạng bảng.
+    - **Customers (Khách hàng)**: Trang quản lý khách hàng dạng bảng.
+    - **Analytics (Phân tích)**: Trang với các biểu đồ phân tích dữ liệu chi tiết (Traffic Sources, Revenue, Device Usage, Conversion Funnel).
+
+---
+
+## 5. Hướng Dẫn Bắt Đầu Chi Tiết
+
+### 5.1. Yêu Cầu Môi Trường
+- **Trình duyệt web hiện đại**: Chrome, Firefox, Edge, Safari phiên bản mới nhất.
+- **Kết nối Internet**: Cần thiết để tải Tailwind CSS từ CDN và các thư viện từ `esm.sh`.
+- **Không cần Node.js hay npm/yarn để chạy**.
+
+### 5.2. Các Bước Khởi Chạy
+1.  **Tải mã nguồn**.
+2.  **Mở `index.html`** trong trình duyệt (trực tiếp hoặc qua Live Server extension).
+
+### 5.3. Gỡ Lỗi Cơ Bản
+- **Kiểm tra Console của Trình duyệt** (F12).
+- **Kiểm tra tab Network**.
+- **React Developer Tools** (extension).
+
+---
+
+## 6. Các Thành Phần Chính & Logic Hoạt Động Sâu
+
+### 6.1. Hệ Thống Điều Hướng (Navigation)
+
+- **`Sidebar.tsx`**: Hiển thị các mục điều hướng. Gọi callback `setActiveItemName` từ `App.tsx` khi một mục được chọn.
+- **`App.tsx` (Logic Routing)**: Sử dụng state `activePage` và conditional rendering để hiển thị trang tương ứng.
+- **`constants.ts` (`NAV_ITEMS`)**: Định nghĩa cấu trúc các mục điều hướng (tên, icon, path).
+
+### 6.2. Hiển Thị Dữ Liệu (Data Display)
+
+- **`StatCard.tsx`**: Hiển thị thẻ thống kê nhỏ gọn với tiêu đề, giá trị, và phần trăm thay đổi.
+- **Hiển Thị Dạng Bảng**: Trong các trang `ProductsPage`, `OrdersPage`, `CustomersPage`. Sử dụng `<table>` HTML với styling Tailwind, có `overflow-x-auto` cho responsive. Dữ liệu mẫu được mock.
+- **Định dạng dữ liệu**: Ngày tháng (`formatDate`), tiền tệ, trạng thái (badges màu với `getStatusClass`).
+
+### 6.3. Hệ Thống Biểu Đồ (Charting)
+
+- **Thư viện Recharts**:
+    - **Components cốt lõi**: `ResponsiveContainer`, `LineChart`, `BarChart`, `PieChart`, `AreaChart`, `XAxis`, `YAxis`, `CartesianGrid`, `Tooltip`, `Line`, `Bar`, `Pie`, `Cell`, `Area`.
+- **`ChartCard.tsx`**: Wrapper component cho biểu đồ, cung cấp tiêu đề, giá trị chính, phụ đề (với tô màu động cho % thay đổi).
+- **`CustomTooltip`**: Tooltip tùy chỉnh cho Recharts.
+- **Luồng Dữ Liệu**: Dữ liệu từ `constants.ts` -> component trang -> prop `data` của Recharts.
+
+### 6.4. Triết Lý Thiết Kế Giao Diện & Tạo Kiểu (UI/UX Design Philosophy & Styling)
+
+Phần này mô tả các nguyên tắc và yếu tố thiết kế cốt lõi được áp dụng trong toàn bộ giao diện Admin Dashboard.
+
+#### 6.4.1. Phong Cách Giao Diện Tổng Thể
+
+- **Hiện đại và Tối giản (Modern & Minimalist)**: Giao diện hướng đến sự sạch sẽ, không rườm rà, tập trung vào nội dung và dữ liệu. Các yếu tố được thiết kế để trực quan và dễ hiểu.
+- **Chủ đề Tối (Dark Theme)**: Như đã đề cập, chủ đề tối là chủ đạo, mang lại vẻ chuyên nghiệp, giảm mỏi mắt và làm nổi bật các yếu tố dữ liệu quan trọng.
+- **Tập trung vào Dữ liệu (Data-Centric)**: Thiết kế ưu tiên việc hiển thị dữ liệu một cách rõ ràng và hiệu quả. Biểu đồ, bảng biểu và các thẻ thống kê là trung tâm của trải nghiệm.
+- **Utility-First với Tailwind CSS**: Giao diện được xây dựng chủ yếu bằng các lớp tiện ích của Tailwind CSS, cho phép tùy chỉnh sâu và phát triển nhanh chóng mà không cần nhiều CSS tùy chỉnh.
+
+#### 6.4.2. Font Chữ (Typography)
+
+- **Font Family**: Ứng dụng sử dụng **font sans-serif mặc định của hệ thống (system font stack)**. Tailwind CSS theo mặc định sẽ ưu tiên các font chữ như `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`.
+    - **Lý do**: Đảm bảo tính nhất quán trên các hệ điều hành khác nhau, hiệu suất tải tốt (không cần tải file font riêng), và mang lại cảm giác quen thuộc cho người dùng.
+- **Kích thước và Trọng lượng (Size & Weight)**:
+    - Kích thước chữ được điều chỉnh linh hoạt cho các yếu tố khác nhau (tiêu đề, nội dung, nhãn) bằng các lớp tiện ích của Tailwind (ví dụ: `text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`).
+    - Trọng lượng font cũng được quản lý bằng các lớp tiện ích (ví dụ: `font-medium`, `font-semibold`, `font-bold`).
+- **Dễ đọc**: Ưu tiên độ tương phản tốt giữa màu chữ và màu nền để đảm bảo khả năng đọc.
+
+#### 6.4.3. Bảng Màu Chi Tiết (Color Palette)
+
+Bảng màu được xây dựng dựa trên các màu của Tailwind CSS, với một số tùy chỉnh nhỏ.
+
+- **Màu Nền Chính (Primary Backgrounds)**:
+    - `bg-slate-900` (#0F172A): Nền chính của toàn bộ ứng dụng (`<body>`) và sidebar.
+    - `bg-slate-800` (#1E293B): Nền cho các thẻ (cards), bảng biểu, và các khối nội dung chính.
+    - `bg-slate-850` (#20293A): Một sắc độ tùy chỉnh, thường dùng cho header của bảng hoặc các vùng nền phụ trong card. (Định nghĩa trong `index.html`).
+    - `bg-slate-700` (#334155): Sử dụng cho các trạng thái active (ví dụ: mục sidebar đang chọn) hoặc các vùng tương tác hover nhẹ.
+
+- **Màu Chữ Chính (Primary Text Colors)**:
+    - `text-slate-100` (#F1F5F9): Màu chữ chính cho nội dung trên nền tối.
+    - `text-slate-300` (#CBD5E1): Màu chữ phụ, dùng cho các mục điều hướng không active, mô tả ngắn.
+    - `text-slate-400` (#94A3B8): Màu chữ cho các nhãn, tiêu đề phụ, thông tin ít quan trọng hơn (ví dụ: tiêu đề cột bảng, nhãn trục biểu đồ).
+    - `text-white` (#FFFFFF): Sử dụng cho các tiêu đề lớn hoặc các yếu tố cần độ tương phản cao.
+
+- **Màu Nhấn và Trạng Thái (Accent & Status Colors)**:
+    - **Xanh dương (Sky Blue - Accent)**:
+        - `text-sky-400` (#38BDF8): Dùng cho các link, ID đơn hàng, và các yếu tố nhấn chính trong biểu đồ (ví dụ: đường line chart).
+        - `bg-sky-500` (#0EA5E9): Nút "Add New Product/Customer".
+        - `hover:bg-sky-600` (#0284C7): Trạng thái hover của nút.
+    - **Xanh lá (Green - Positive/Success)**:
+        - `text-green-400` (#4ADE80): Cho các chỉ số tăng trưởng dương, trạng thái "In Stock".
+        - `bg-green-500` (#22C55E), `text-green-50`: Badge trạng thái "Delivered", "In Stock".
+    - **Đỏ (Red - Negative/Error/Danger)**:
+        - `text-red-400` (#F87171): Cho các chỉ số giảm, trạng thái "Out of Stock", nút "Delete" (nếu có).
+        - `bg-red-500` (#EF4444), `text-red-50`: Badge trạng thái "Cancelled", "Out of Stock".
+    - **Vàng (Yellow - Warning/Pending)**:
+        - `bg-yellow-500` (#EAB308), `text-yellow-50`: Badge trạng thái "Pending", "Low Stock".
+    - **Tím (Purple - Informational/Shipped)**:
+        - `bg-purple-500` (#A855F7), `text-purple-50`: Badge trạng thái "Shipped".
+    - **Xanh dương (Blue - Informational/Processing)**:
+        - `bg-blue-500` (#3B82F6), `text-blue-50`: Badge trạng thái "Processing".
+    - **Màu cho các biểu đồ khác**: Các màu avatar (`bg-pink-500`, `bg-indigo-500`, etc.) và màu cho các phần của Pie chart.
+
+- **Màu Biểu Đồ (Chart Colors)**:
+    - Đường Line Chart chính: `stroke="#38BDF8"` (Sky Blue).
+    - Cột Bar Chart chính: `fill="#64748B"` (Slate 500).
+    - Lưới biểu đồ: `stroke="#64748B"` với `strokeOpacity` thấp.
+    - Tick (nhãn trục): `fill: '#94A3B8'` (Slate 400).
+
+#### 6.4.4. Hệ Thống Bố Cục (Layout System)
+
+- **Cấu trúc chính (Main Structure)**:
+    - **Flexbox**: Bố cục chính của ứng dụng (`<div class="flex h-screen">` trong `App.tsx`) sử dụng Flexbox để chia màn hình thành `Sidebar` (chiều rộng cố định, co lại trên màn hình nhỏ) và `main` content area (chiếm phần còn lại).
+    - **Sidebar**: Chiều rộng `w-60 md:w-64`, co lại (`shrink-0`).
+    - **Main Content**: `flex-1`, cho phép nó mở rộng để lấp đầy không gian còn lại. `overflow-y-auto` để cho phép cuộn nội dung nếu vượt quá chiều cao.
+
+- **Bố cục Lưới (Grid System)**:
+    - **Tailwind CSS Grid**: Được sử dụng rộng rãi để sắp xếp các card và các phần tử trong trang.
+        - Ví dụ: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6` trong `Dashboard.tsx` để hiển thị các `StatCard`.
+        - `gap`: Khoảng cách giữa các mục trong grid.
+    - Các trang như `AnalyticsPage` cũng sử dụng grid để bố trí nhiều `ChartCard`.
+
+- **Tính Đáp Ứng (Responsiveness)**:
+    - **Breakpoints của Tailwind**: `sm`, `md`, `lg`, `xl` được sử dụng để thay đổi bố cục, kích thước, khoảng cách, ẩn/hiện các phần tử.
+        - Ví dụ: Sidebar có padding và font size khác nhau (`p-4 md:p-6`), số cột của grid thay đổi (`grid-cols-1 sm:grid-cols-2`).
+    - **Overflow Handling**: `overflow-x-auto` cho bảng và `overflow-y-auto` cho nội dung chính đảm bảo nội dung không bị cắt xén và có thể cuộn được.
+
+#### 6.4.5. Icon (Iconography)
+
+- **Nguồn và Kiểu Dáng**:
+    - **SVG Tùy Chỉnh (Custom SVGs)**: Tất cả các icon được sử dụng (ví dụ: `HomeIcon`, `BoxIcon`, `ChartBarIcon`, `ShoppingBagIcon`, `UsersIcon`) là các component React SVG tùy chỉnh, nằm trong thư mục `components/icons/`.
+    - **Phong cách Outline**: Các icon chủ yếu theo phong cách "outline" (đường viền), với `strokeWidth={1.5}`. Điều này mang lại vẻ nhẹ nhàng, hiện đại và nhất quán.
+    - **Kích thước**: Thường được sử dụng với kích thước nhỏ (`w-5 h-5` hoặc `w-6 h-6`) và có thể được điều chỉnh thông qua props `className`.
+- **Tính nhất quán**: Việc sử dụng một bộ icon SVG tùy chỉnh với phong cách nhất quán góp phần vào tính thẩm mỹ chung của ứng dụng.
+- **Không phụ thuộc thư viện icon ngoài**: Giảm bớt dependencies và cho phép kiểm soát hoàn toàn giao diện của icon.
+
+#### 6.4.6. Khoảng Trắng và Tính Nhất Quán
+
+- **Khoảng trắng (Whitespace/Padding/Margin)**: Được sử dụng một cách có chủ ý để tạo sự phân cấp rõ ràng giữa các yếu tố, cải thiện khả năng đọc và mang lại cảm giác "thoáng" cho giao diện. Tailwind CSS cung cấp một hệ thống spacing nhất quán (ví dụ: `p-4`, `m-6`, `space-y-2`).
+- **Bo góc (Rounded Corners)**: Hầu hết các yếu tố container như card, button, input đều có bo góc (`rounded-lg`, `rounded-xl`) để tạo cảm giác mềm mại và hiện đại.
+- **Đổ bóng (Shadows)**: `shadow-md`, `shadow-lg`, `shadow-xl` được sử dụng để tạo chiều sâu và phân biệt các lớp giao diện.
+
+---
+
+## 7. Quy Trình Thêm Trang/Tính Năng Mới (Chi Tiết)
+
+1.  **Lên Kế Hoạch và Thiết Kế (Conceptualization)**:
+    *   Xác định rõ mục đích và chức năng của trang/tính năng mới.
+    *   Phác thảo sơ bộ giao diện người dùng (wireframe/mockup nếu cần).
+    *   Xác định dữ liệu cần thiết và cấu trúc của nó.
+
+2.  **Tạo Component Trang Mới**:
+    *   Trong thư mục `components/`, tạo một file `.tsx` mới với tên mô tả (ví dụ: `components/SettingsPage.tsx`).
+    *   Bắt đầu với một cấu trúc component React cơ bản:
+        ```tsx
+        import React from 'react';
+
+        const NewPageName: React.FC = () => {
+          return (
+            <div className="space-y-6 md:space-y-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white">Tên Trang Mới</h2>
+              {/* Nội dung trang ở đây */}
+            </div>
+          );
+        };
+
+        export default NewPageName;
+        ```
+
+3.  **Định Nghĩa Kiểu Dữ Liệu (TypeScript)**:
+    *   Nếu trang/tính năng mới làm việc với các cấu trúc dữ liệu cụ thể, hãy định nghĩa các `interface` hoặc `type` tương ứng trong `types.ts`. Điều này áp dụng cho props của component, state, hoặc dữ liệu được fetch/mock.
+    *   Ví dụ: Nếu trang Cài đặt có các mục cài đặt, bạn có thể định nghĩa:
+        ```typescript
+        // types.ts
+        export interface SettingItem {
+          id: string;
+          label: string;
+          value: boolean | string;
+          type: 'toggle' | 'textInput';
+        }
+        ```
+
+4.  **Thêm Mục Điều Hướng vào Sidebar**:
+    *   **Chọn hoặc tạo Icon**: Nếu có icon phù hợp trong `components/icons/`, sử dụng nó. Nếu không, tạo một component icon SVG mới theo phong cách hiện có.
+    *   **Cập nhật `constants.ts`**:
+        - Import icon mới.
+        - Thêm một object mới vào mảng `NAV_ITEMS`:
+        ```typescript
+        // constants.ts
+        import SettingsIcon from './components/icons/SettingsIcon'; // Giả sử bạn tạo icon này
+
+        export const NAV_ITEMS: NavItemType[] = [
+          // ... các mục hiện có ...
+          { name: 'Settings', icon: SettingsIcon, path: 'Settings' },
+          // `name` là tên hiển thị và cũng là định danh `activePage`
+          // `path` là định danh duy nhất, thường giống `name` trong setup này
+        ];
+        ```
+
+5.  **Tích Hợp vào Hệ Thống Routing của `App.tsx`**:
+    *   Import component trang mới vào `App.tsx`:
+        ```typescript
+        // App.tsx
+        import SettingsPage from './components/SettingsPage'; // Import trang mới
+        ```
+    *   Thêm một dòng vào khối conditional rendering trong `App.tsx` để hiển thị trang mới khi `activePage` tương ứng:
+        ```typescript
+        // App.tsx
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+          {activePage === 'Dashboard' && <Dashboard />}
+          {activePage === 'Products' && <ProductsPage />}
+          {activePage === 'Orders' && <OrdersPage />}
+          {activePage === 'Customers' && <CustomersPage />}
+          {activePage === 'Analytics' && <AnalyticsPage />}
+          {activePage === 'Settings' && <SettingsPage />} {/* Thêm dòng này */}
+        </main>
+        ```
+        Đảm bảo chuỗi `'Settings'` khớp với giá trị `name` (hoặc `path`) bạn đã định nghĩa trong `NAV_ITEMS`.
+
+6.  **Triển Khai Logic và Giao Diện cho Trang Mới**:
+    *   Xây dựng UI cho trang mới bằng các component React và Tailwind CSS.
+    *   Tận dụng các component tái sử dụng đã có (`StatCard`, `ChartCard`, etc.) nếu phù hợp.
+    *   Thêm state và xử lý sự kiện nếu cần.
+
+7.  **Chuẩn Bị Dữ Liệu Mẫu (Nếu Cần)**:
+    *   Nếu trang cần hiển thị dữ liệu, hãy tạo dữ liệu mẫu. Dữ liệu này có thể được đặt trực tiếp trong component trang (cho phát triển ban đầu) hoặc tốt hơn là trong `constants.ts` để dễ quản lý.
+    *   Đảm bảo dữ liệu mẫu tuân thủ các kiểu đã định nghĩa trong `types.ts`.
+
+8.  **Kiểm Thử Kỹ Lưỡng**:
+    *   Kiểm tra trang mới trên các kích thước màn hình khác nhau.
+    *   Kiểm tra tương tác và logic (nếu có).
+    *   Đảm bảo không có lỗi console.
+
+---
+
+## 8. Hướng Dẫn Bảo Trì Ứng Dụng Chuyên Sâu
+
+- **Tuân Thủ Nguyên Tắc Component Hóa**: Giữ component nhỏ, chia nhỏ component lớn.
+- **Tận Dụng Tối Đa TypeScript**: Kiểu nghiêm ngặt, utility types, đồng bộ `types.ts`.
+- **Quản Lý Styling Nhất Quán**: Sử dụng theme Tailwind, tránh ghi đè CSS phức tạp.
+- **Tối Ưu Hóa Hiệu Suất (Khi Cần)**: `React.memo`, `useMemo`, `useCallback`, lazy loading (nếu có bundler).
+- **Quản Lý Dữ Liệu Nâng Cao (Định Hướng)**: Fetching data, state management (Zustand, Redux), xử lý lỗi/loading.
+- **Viết Mã Dễ Đọc và Dễ Hiểu**: Đặt tên rõ ràng, comment khi cần, format code.
+- **Cập Nhật Dependencies (Khi có bundler)**.
+
+---
+
+## 9. Quản Lý API Key (Định Hướng Tương Lai)
+
+Nếu ứng dụng này được mở rộng để sử dụng các API bên ngoài yêu cầu API key:
+
+- **Nguyên Tắc Vàng: Bảo Mật API Key**: API key **TUYỆT ĐỐI KHÔNG** được nhúng trực tiếp vào mã nguồn phía client.
+- **Phương Pháp Đúng Đắn**: Biến Môi Trường Phía Server và Backend Proxy.
+    ```
+    Client (Browser) ---request---> Your Backend (Proxy) ---request_with_API_key---> External API
+                                  (API key from process.env)
+    Client (Browser) <---response-- Your Backend (Proxy) <---response_from_External_API--- External API
+    ```
+- **Đối với ứng dụng Client-Side thuần túy**: Nếu không có backend, việc sử dụng các API yêu cầu key bí mật trực tiếp từ client là **KHÔNG AN TOÀN**.
+- **Không bao giờ yêu cầu người dùng nhập API key vào giao diện người dùng**.
+
+---
+
+Tài liệu chi tiết này nhằm mục đích cung cấp một sự hiểu biết sâu sắc và toàn diện về dự án Admin Dashboard. Hy vọng nó sẽ là một nguồn tài nguyên quý giá cho việc phát triển và bảo trì trong tương lai.

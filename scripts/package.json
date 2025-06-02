@@ -1,0 +1,30 @@
+{
+  "name": "3d-marketplace-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for seeding and managing 3D marketplace data",
+  "main": "seed-products.js",
+  "scripts": {
+    "seed": "node seed-products.js",
+    "seed:categories": "node -e \"require('./seed-products').createCategories()\"",
+    "seed:products": "node -e \"require('./seed-products').seedProducts()\"",
+    "seed:user": "node -e \"require('./seed-products').createTestUser()\""
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "puppeteer": "^21.6.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.7.0"
+  },
+  "keywords": [
+    "3d",
+    "marketplace",
+    "seeding",
+    "puppeteer",
+    "prisma"
+  ],
+  "author": "3D Marketplace Team",
+  "license": "MIT"
+}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ProductModel3D } from "@/components/product-model-3d"
 import { useLanguage } from "@/hooks/use-language"
 import { formatCurrency } from "@/lib/i18n"
 import Image from "next/image"
@@ -28,6 +29,7 @@ const getProductData = (id: string, language: string) => ({
     "/placeholder.svg?height=600&width=600",
     "/placeholder.svg?height=600&width=600",
   ],
+  modelUrl: "/models/modern-villa.glb", // 3D model file
   description:
     language === "en"
       ? "A stunning modern villa 3D model featuring contemporary architecture with clean lines, large windows, and premium materials. Perfect for architectural visualization, game development, and design projects."
@@ -189,47 +191,17 @@ export default function ProductDetailPage() {
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Product Images */}
-          <div className="space-y-4">
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-white border border-[#d1e6d9]">
-              <Image
-                src={product.images[selectedImage] || "/placeholder.svg"}
-                alt={product.name}
-                fill
-                className="object-cover"
-              />
-              {product.discount && (
-                <Badge className="absolute top-4 left-4 bg-red-500 text-white text-lg px-3 py-1">
-                  -{product.discount}%
-                </Badge>
-              )}
-              {product.featured && (
-                <Badge className="absolute top-4 right-4 bg-[#39e079] text-[#0e1a13] text-lg px-3 py-1">
-                  {language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật"}
-                </Badge>
-              )}
-            </div>
-
-            {/* Thumbnail Images */}
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`relative aspect-square overflow-hidden rounded-lg border-2 transition-colors ${
-                    selectedImage === index ? "border-[#39e079]" : "border-[#d1e6d9]"
-                  }`}
-                >
-                  <Image
-                    src={image || "/placeholder.svg"}
-                    alt={`${product.name} ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Product 3D Model / Images */}
+          <ProductModel3D 
+            product={{
+              id: product.id,
+              name: product.name,
+              modelUrl: product.modelUrl,
+              images: product.images,
+              category: product.category
+            }}
+            className="h-[600px]"
+          />
 
           {/* Product Info */}
           <div className="space-y-6">

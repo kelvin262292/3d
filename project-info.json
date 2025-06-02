@@ -1,0 +1,68 @@
+{
+  "projectName": "3D Model Store",
+  "version": "1.0.0",
+  "description": "A complete 3D model e-commerce platform with modern features",
+  "technologyStack": {
+    "frontend": {
+      "framework": "Next.js",
+      "version": "15.0.0",
+      "language": "TypeScript",
+      "cssFramework": "Tailwind CSS",
+      "3DLibrary": "Three.js with React Three Fiber"
+    },
+    "backend": {
+      "apiFramework": "Next.js API Routes",
+      "database": "PostgreSQL",
+      "orm": "Prisma",
+      "authentication": "NextAuth.js",
+      "payment": "Stripe",
+      "imageStorage": "Cloudinary"
+    },
+    "testing": {
+      "e2eTesting": "Playwright",
+      "unitTesting": "Jest",
+      "testRunner": "Vitest",
+      "coverageTool": "Istanbul"
+    }
+  },
+  "developmentTools": {
+    "packageManager": "pnpm",
+    "linting": "ESLint with TypeScript ESLint",
+    "formatting": "Prettier",
+    "stateManagement": "Context API",
+    "deployment": "Vercel",
+    "monitoring": "Custom performance monitoring"
+  },
+  "environmentVariables": {
+    "required": [
+      "DATABASE_URL",
+      "NEXTAUTH_SECRET",
+      "NEXTAUTH_URL",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_PUBLISHABLE_KEY",
+      "CLOUDINARY_CLOUD_NAME",
+      "CLOUDINARY_API_KEY",
+      "CLOUDINARY_API_SECRET",
+      "SENDGRID_API_KEY"
+    ],
+    "optional": [
+      "REDIS_URL",
+      "NODE_ENV"
+    ]
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write .",
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "test:coverage": "jest --coverage",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js"
+  }
+}

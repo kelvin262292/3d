@@ -3,6 +3,7 @@
 import { useLanguage } from "@/hooks/use-language"
 import { Button } from "@/components/ui/button"
 import { User, ShoppingBag, MapPin, Lock, Bell, LogOut } from "lucide-react"
+import { logger } from '@/lib/logger'
 
 interface AccountSidebarProps {
   activeTab: string
@@ -22,7 +23,7 @@ export default function AccountSidebar({ activeTab, onTabChange }: AccountSideba
 
   const handleLogout = () => {
     // Implement logout functionality
-    console.log("Logging out...")
+    logger.info('User logout initiated', 'UI')
   }
 
   return (

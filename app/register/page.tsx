@@ -2,27 +2,29 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useLanguage } from "@/hooks/use-language"
 import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function RegisterPage() {
   const { language, t } = useLanguage()
   const router = useRouter()
   const { toast } = useToast()
+  const { user, loading, isAuthenticating, error, register, clearError } = useAuth()
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -34,7 +36,7 @@ export default function RegisterPage() {
     confirmPassword: "",
   })
 
-  const [errors, setErrors] = useState({
+  const [validationErrors, setValidationErrors] = useState({
     username: "",
     fullName: "",
     email: "",
@@ -44,19 +46,33 @@ export default function RegisterPage() {
     terms: "",
   })
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard')
+    }
+  }, [user, loading, router])
+
+  // Clear auth errors when component mounts or when user starts typing
+  useEffect(() => {
+    if (error) {
+      clearError()
+    }
+  }, [formData.email, formData.password, formData.username])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
 
     // Clear error when user types
-    if (errors[name as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }))
+    if (validationErrors[name as keyof typeof validationErrors]) {
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }))
     }
   }
 
   const validateForm = () => {
     let isValid = true
-    const newErrors = { ...errors }
+    const newErrors = { ...validationErrors }
 
     // Username validation
     if (!formData.username.trim()) {
@@ -65,12 +81,16 @@ export default function RegisterPage() {
     } else if (formData.username.length < 3) {
       newErrors.username = t.validation.username_length
       isValid = false
+    } else {
+      newErrors.username = ""
     }
 
     // Full name validation
     if (!formData.fullName.trim()) {
       newErrors.fullName = t.validation.fullname_required
       isValid = false
+    } else {
+      newErrors.fullName = ""
     }
 
     // Email validation
@@ -81,6 +101,8 @@ export default function RegisterPage() {
     } else if (!emailRegex.test(formData.email)) {
       newErrors.email = t.validation.email_invalid
       isValid = false
+    } else {
+      newErrors.email = ""
     }
 
     // Phone validation
@@ -91,6 +113,8 @@ export default function RegisterPage() {
     } else if (!phoneRegex.test(formData.phone)) {
       newErrors.phone = t.validation.phone_invalid
       isValid = false
+    } else {
+      newErrors.phone = ""
     }
 
     // Password validation
@@ -100,6 +124,8 @@ export default function RegisterPage() {
     } else if (formData.password.length < 8) {
       newErrors.password = t.validation.password_length
       isValid = false
+    } else {
+      newErrors.password = ""
     }
 
     // Confirm password validation
@@ -109,15 +135,19 @@ export default function RegisterPage() {
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = t.validation.passwords_not_match
       isValid = false
+    } else {
+      newErrors.confirmPassword = ""
     }
 
     // Terms agreement validation
     if (!agreeTerms) {
       newErrors.terms = t.validation.terms_required
       isValid = false
+    } else {
+      newErrors.terms = ""
     }
 
-    setErrors(newErrors)
+    setValidationErrors(newErrors)
     return isValid
   }
 
@@ -126,30 +156,27 @@ export default function RegisterPage() {
 
     if (!validateForm()) return
 
-    setIsLoading(true)
-
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
+      await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        name: formData.fullName
+      })
+      
       toast({
         title: t.auth.registration_successful,
         description: t.auth.registration_success_message,
-        variant: "success",
       })
-
-      // Redirect to login page after successful registration
-      setTimeout(() => {
-        router.push("/login")
-      }, 1000)
-    } catch (error) {
+      
+      // Redirect will be handled by useAuth hook
+    } catch (authError: any) {
+      // Error is already set in useAuth hook, just show toast
       toast({
         title: t.common.error,
-        description: t.auth.registration_error,
+        description: authError.message || t.auth.registration_error,
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -213,47 +240,64 @@ export default function RegisterPage() {
 
         <Card className="border-[#d1e6d9]">
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} method="POST" className="space-y-4">
+              {/* Auth Error Display */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {error.message || t.auth.registration_error}
+                    {error.field && (
+                      <span className="block text-xs mt-1">
+                        {t.validation[`${error.field}_error`] || `Error in ${error.field}`}
+                      </span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Username Field */}
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-[#0e1a13]">
+                <Label htmlFor="username">
                   {t.auth.username} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#51946b] w-5 h-5" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="username"
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
                     placeholder={getPlaceholder("username")}
-                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${
-                      errors.username ? "border-red-500" : ""
+                    className={`pl-10 ${
+                      validationErrors.username ? "border-destructive" : ""
                     }`}
+                    disabled={isAuthenticating || loading}
                   />
                 </div>
-                {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
+                {validationErrors.username && <p className="text-sm text-destructive">{validationErrors.username}</p>}
               </div>
 
               {/* Full Name Field */}
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-[#0e1a13]">
+                <Label htmlFor="fullName">
                   {t.auth.full_name} <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#51946b] w-5 h-5" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="fullName"
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder={getPlaceholder("fullName")}
-                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${
-                      errors.fullName ? "border-red-500" : ""
+                    className={`pl-10 ${
+                      validationErrors.fullName ? "border-destructive" : ""
                     }`}
+                    disabled={isAuthenticating || loading}
                   />
                 </div>
-                {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
+                {validationErrors.fullName && <p className="text-sm text-destructive">{validationErrors.fullName}</p>}
               </div>
 
               {/* Email Field */}
@@ -270,10 +314,11 @@ export default function RegisterPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder={getPlaceholder("email")}
-                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${errors.email ? "border-red-500" : ""}`}
+                    disabled={isAuthenticating || loading}
+                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${validationErrors.email ? "border-red-500" : ""}`}
                   />
                 </div>
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                {validationErrors.email && <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>}
               </div>
 
               {/* Phone Field */}
@@ -290,10 +335,11 @@ export default function RegisterPage() {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder={getPlaceholder("phone")}
-                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${errors.phone ? "border-red-500" : ""}`}
+                    disabled={isAuthenticating || loading}
+                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${validationErrors.phone ? "border-red-500" : ""}`}
                   />
                 </div>
-                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                {validationErrors.phone && <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>}
               </div>
 
               {/* Password Field */}
@@ -310,8 +356,9 @@ export default function RegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder={getPlaceholder("password")}
+                    disabled={isAuthenticating || loading}
                     className={`pl-10 pr-10 border-[#d1e6d9] focus:border-[#39e079] ${
-                      errors.password ? "border-red-500" : ""
+                      validationErrors.password ? "border-red-500" : ""
                     }`}
                   />
                   <Button
@@ -319,12 +366,13 @@ export default function RegisterPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isAuthenticating || loading}
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
                 </div>
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                {validationErrors.password && <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>}
               </div>
 
               {/* Confirm Password Field */}
@@ -341,8 +389,9 @@ export default function RegisterPage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder={getPlaceholder("confirmPassword")}
+                    disabled={isAuthenticating || loading}
                     className={`pl-10 pr-10 border-[#d1e6d9] focus:border-[#39e079] ${
-                      errors.confirmPassword ? "border-red-500" : ""
+                      validationErrors.confirmPassword ? "border-red-500" : ""
                     }`}
                   />
                   <Button
@@ -350,12 +399,13 @@ export default function RegisterPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={isAuthenticating || loading}
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
                 </div>
-                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                {validationErrors.confirmPassword && <p className="text-red-500 text-sm mt-1">{validationErrors.confirmPassword}</p>}
               </div>
 
               {/* Terms and Conditions */}
@@ -366,9 +416,10 @@ export default function RegisterPage() {
                     checked={agreeTerms}
                     onCheckedChange={(checked) => {
                       setAgreeTerms(checked as boolean)
-                      if (checked) setErrors((prev) => ({ ...prev, terms: "" }))
+                      if (checked) setValidationErrors((prev) => ({ ...prev, terms: "" }))
                     }}
-                    className={errors.terms ? "border-red-500" : ""}
+                    disabled={isAuthenticating || loading}
+                    className={validationErrors.terms ? "border-red-500" : ""}
                   />
                   <Label htmlFor="terms" className="text-sm text-[#51946b] leading-tight">
                     {language === "en" ? (
@@ -407,17 +458,17 @@ export default function RegisterPage() {
                     )}
                   </Label>
                 </div>
-                {errors.terms && <p className="text-red-500 text-sm mt-1">{errors.terms}</p>}
+                {validationErrors.terms && <p className="text-red-500 text-sm mt-1">{validationErrors.terms}</p>}
               </div>
 
               {/* Register Button */}
               <Button
                 type="submit"
                 size="lg"
-                disabled={isLoading}
+                disabled={isAuthenticating || loading}
                 className="w-full bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90 mt-2"
               >
-                {isLoading ? (
+                {isAuthenticating || loading ? (
                   <div className="flex items-center">
                     <div className="w-4 h-4 border-2 border-[#0e1a13] border-t-transparent rounded-full animate-spin mr-2" />
                     {t.common.loading}
@@ -440,7 +491,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Google Register */}
-            <Button variant="outline" size="lg" className="w-full border-[#d1e6d9] hover:bg-[#f8fbfa]">
+            <Button variant="outline" size="lg" disabled={isAuthenticating || loading} className="w-full border-[#d1e6d9] hover:bg-[#f8fbfa]">
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -471,7 +522,7 @@ export default function RegisterPage() {
                     ? "已经有账户？"
                     : "Đã có tài khoản?"}
               </span>{" "}
-              <Link href="/login" className="text-[#39e079] hover:text-[#39e079]/80 font-medium transition-colors">
+              <Link href="/login" className={`text-[#39e079] hover:text-[#39e079]/80 font-medium transition-colors ${isAuthenticating || loading ? 'pointer-events-none opacity-50' : ''}`}>
                 {t.auth.login_title}
               </Link>
             </div>

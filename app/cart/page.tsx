@@ -1,71 +1,104 @@
 "use client"
 
-import { useState } from "react"
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { useLanguage } from "@/hooks/use-language"
 import { formatCurrency } from "@/lib/i18n"
+import { useCart } from "@/hooks/useCart"
+import { useAuth } from "@/hooks/useAuth"
+import { toast } from "@/hooks/use-toast"
 import Image from "next/image"
 import Link from "next/link"
 
-// Mock cart data
-const getCartItems = (language: string) => [
-  {
-    id: "1",
-    name: language === "en" ? "Modern Villa 3D" : language === "zh" ? "现代别墅3D" : "Villa Hiện Đại 3D",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    price: 299000,
-    originalPrice: 399000,
-    image: "/placeholder.svg?height=150&width=150",
-    quantity: 1,
-    format: "FBX",
-    discount: 25,
-  },
-  {
-    id: "2",
-    name: language === "en" ? "Ferrari Sports Car" : language === "zh" ? "法拉利跑车" : "Xe Thể Thao Ferrari",
-    category: language === "en" ? "Vehicles" : language === "zh" ? "车辆" : "Xe cộ",
-    price: 450000,
-    image: "/placeholder.svg?height=150&width=150",
-    quantity: 1,
-    format: "OBJ",
-  },
-]
-
 export default function CartPage() {
   const { language, t } = useLanguage()
-  const [cartItems, setCartItems] = useState(getCartItems(language))
+  const { items: cartItems, loading, updateQuantity, removeFromCart, subtotal } = useCart()
+  const { user } = useAuth()
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
+  const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
-  const updateQuantity = (id: string, newQuantity: number) => {
+  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return
-    setCartItems((items) => items.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
+    
+    setIsUpdating(itemId)
+    try {
+      await updateQuantity(itemId, newQuantity)
+      toast({
+        title: "Cart updated",
+        description: "Item quantity has been updated",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update quantity",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdating(null)
+    }
   }
 
-  const removeItem = (id: string) => {
-    setCartItems((items) => items.filter((item) => item.id !== id))
+  const handleRemoveItem = async (itemId: string) => {
+    try {
+      await removeFromCart(itemId)
+      toast({
+        title: "Item removed",
+        description: "Item has been removed from your cart",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to remove item",
+        variant: "destructive",
+      })
+    }
   }
 
   const applyCoupon = () => {
     if (couponCode.toLowerCase() === "save10") {
       setAppliedCoupon({ code: couponCode, discount: 0.1 })
       setCouponCode("")
+      toast({
+        title: "Coupon applied",
+        description: "10% discount has been applied to your order",
+      })
+    } else {
+      toast({
+        title: "Invalid coupon",
+        description: "The coupon code you entered is not valid",
+        variant: "destructive",
+      })
     }
   }
 
   const removeCoupon = () => {
     setAppliedCoupon(null)
+    toast({
+      title: "Coupon removed",
+      description: "Discount has been removed from your order",
+    })
   }
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const couponDiscount = appliedCoupon ? subtotal * appliedCoupon.discount : 0
   const shipping = subtotal > 500000 ? 0 : 50000
   const tax = (subtotal - couponDiscount) * 0.1
   const total = subtotal - couponDiscount + shipping + tax
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f8fbfa] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#51946b]" />
+          <p className="text-[#51946b]">Loading your cart...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -98,6 +131,18 @@ export default function CartPage() {
           <p className="text-[#51946b]">
             {cartItems.length} {cartItems.length === 1 ? t.cart.item : t.cart.items}
           </p>
+          {!user && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-800 text-sm">
+                💡 {language === "en" ? "Sign in to save your cart and sync across devices" : 
+                     language === "zh" ? "登录以保存购物车并在设备间同步" : 
+                     "Đăng nhập để lưu giỏ hàng và đồng bộ trên các thiết bị"}
+              </p>
+              <Link href="/login" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                {language === "en" ? "Sign in now" : language === "zh" ? "立即登录" : "Đăng nhập ngay"}
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -123,18 +168,29 @@ export default function CartPage() {
                         <div>
                           <Link href={`/products/${item.id}`}>
                             <h3 className="font-semibold text-[#0e1a13] hover:text-[#39e079] transition-colors">
-                              {item.name}
+                              {item.product.name}
                             </h3>
                           </Link>
-                          <p className="text-sm text-[#51946b]">{item.category}</p>
+                          <p className="text-sm text-[#51946b]">{item.product.category}</p>
                           <p className="text-xs text-[#51946b]">
-                            {t.product.format}: {item.format}
+                            {t.product.format}: {item.product.format || 'Digital'}
                           </p>
+                          {item.product.originalPrice && item.product.originalPrice > item.product.price && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm line-through text-gray-400">
+                                {formatCurrency(item.product.originalPrice, language)}
+                              </span>
+                              <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                                -{Math.round((1 - item.product.price / item.product.originalPrice) * 100)}%
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => handleRemoveItem(item.id)}
+                          disabled={isUpdating === item.id}
                           className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -147,31 +203,40 @@ export default function CartPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1 || isUpdating === item.id}
                             className="w-8 h-8 p-0"
                           >
-                            <Minus className="w-3 h-3" />
+                            {isUpdating === item.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Minus className="w-3 h-3" />
+                            )}
                           </Button>
                           <span className="w-8 text-center font-medium">{item.quantity}</span>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                            disabled={isUpdating === item.id}
                             className="w-8 h-8 p-0"
                           >
-                            <Plus className="w-3 h-3" />
+                            {isUpdating === item.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Plus className="w-3 h-3" />
+                            )}
                           </Button>
                         </div>
 
                         {/* Price */}
                         <div className="text-right">
                           <div className="font-bold text-[#0e1a13]">
-                            {formatCurrency(item.price * item.quantity, language)}
+                            {formatCurrency(item.product.price * item.quantity, language)}
                           </div>
-                          {item.originalPrice && (
+                          {item.product.originalPrice && (
                             <div className="text-sm text-[#51946b] line-through">
-                              {formatCurrency(item.originalPrice * item.quantity, language)}
+                              {formatCurrency(item.product.originalPrice * item.quantity, language)}
                             </div>
                           )}
                         </div>
@@ -294,9 +359,11 @@ export default function CartPage() {
                   <span className="text-[#0e1a13]">{formatCurrency(total, language)}</span>
                 </div>
 
-                <Button size="lg" className="w-full bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
-                  {t.cart.checkout}
-                  <ArrowRight className="ml-2 w-5 h-5" />
+                <Button asChild size="lg" className="w-full bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
+                  <Link href="/checkout">
+                    {t.cart.checkout}
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
                 </Button>
 
                 {/* Security Notice */}

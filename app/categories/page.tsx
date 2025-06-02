@@ -1,293 +1,78 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Search, Grid, List, ArrowRight, TrendingUp } from "lucide-react"
+import { ArrowRight, Grid, List, Search, TrendingUp, Loader2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLanguage } from "@/hooks/use-language"
+import { Category } from "@/types/api"
 
-// Mock data cho categories
-const getCategories = (language: string) => [
-  {
-    id: "architecture",
-    name: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    description:
-      language === "en"
-        ? "Buildings, structures, and architectural elements"
-        : language === "zh"
-          ? "建筑物、结构和建筑元素"
-          : "Tòa nhà, công trình và các yếu tố kiến trúc",
-    count: 156,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: true,
-    subcategories: [
-      {
-        id: "residential",
-        name: language === "en" ? "Residential" : language === "zh" ? "住宅" : "Nhà ở",
-        count: 89,
-      },
-      {
-        id: "commercial",
-        name: language === "en" ? "Commercial" : language === "zh" ? "商业" : "Thương mại",
-        count: 45,
-      },
-      {
-        id: "industrial",
-        name: language === "en" ? "Industrial" : language === "zh" ? "工业" : "Công nghiệp",
-        count: 22,
-      },
-    ],
-  },
-  {
-    id: "vehicles",
-    name: language === "en" ? "Vehicles" : language === "zh" ? "车辆" : "Xe cộ",
-    description:
-      language === "en"
-        ? "Cars, trucks, planes, boats and all transportation"
-        : language === "zh"
-          ? "汽车、卡车、飞机、船只和所有交通工具"
-          : "Ô tô, xe tải, máy bay, thuyền và tất cả phương tiện giao thông",
-    count: 89,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: true,
-    subcategories: [
-      {
-        id: "cars",
-        name: language === "en" ? "Cars" : language === "zh" ? "汽车" : "Ô tô",
-        count: 45,
-      },
-      {
-        id: "aircraft",
-        name: language === "en" ? "Aircraft" : language === "zh" ? "飞机" : "Máy bay",
-        count: 23,
-      },
-      {
-        id: "boats",
-        name: language === "en" ? "Boats" : language === "zh" ? "船只" : "Thuyền",
-        count: 21,
-      },
-    ],
-  },
-  {
-    id: "characters",
-    name: language === "en" ? "Characters" : language === "zh" ? "角色" : "Nhân vật",
-    description:
-      language === "en"
-        ? "Human characters, anime, cartoon and fantasy figures"
-        : language === "zh"
-          ? "人物角色、动漫、卡通和奇幻人物"
-          : "Nhân vật con người, anime, hoạt hình và nhân vật fantasy",
-    count: 234,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: true,
-    subcategories: [
-      {
-        id: "anime",
-        name: language === "en" ? "Anime" : language === "zh" ? "动漫" : "Anime",
-        count: 98,
-      },
-      {
-        id: "realistic",
-        name: language === "en" ? "Realistic" : language === "zh" ? "写实" : "Thực tế",
-        count: 76,
-      },
-      {
-        id: "cartoon",
-        name: language === "en" ? "Cartoon" : language === "zh" ? "卡通" : "Hoạt hình",
-        count: 60,
-      },
-    ],
-  },
-  {
-    id: "creatures",
-    name: language === "en" ? "Creatures" : language === "zh" ? "生物" : "Sinh vật",
-    description:
-      language === "en"
-        ? "Animals, monsters, dragons and mythical beings"
-        : language === "zh"
-          ? "动物、怪物、龙和神话生物"
-          : "Động vật, quái vật, rồng và sinh vật thần thoại",
-    count: 67,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: false,
-    subcategories: [
-      {
-        id: "animals",
-        name: language === "en" ? "Animals" : language === "zh" ? "动物" : "Động vật",
-        count: 34,
-      },
-      {
-        id: "fantasy",
-        name: language === "en" ? "Fantasy" : language === "zh" ? "奇幻" : "Fantasy",
-        count: 23,
-      },
-      {
-        id: "dinosaurs",
-        name: language === "en" ? "Dinosaurs" : language === "zh" ? "恐龙" : "Khủng long",
-        count: 10,
-      },
-    ],
-  },
-  {
-    id: "furniture",
-    name: language === "en" ? "Furniture" : language === "zh" ? "家具" : "Nội thất",
-    description:
-      language === "en"
-        ? "Home and office furniture, decorative items"
-        : language === "zh"
-          ? "家庭和办公家具、装饰用品"
-          : "Nội thất gia đình và văn phòng, đồ trang trí",
-    count: 123,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: false,
-    subcategories: [
-      {
-        id: "home",
-        name: language === "en" ? "Home" : language === "zh" ? "家庭" : "Gia đình",
-        count: 78,
-      },
-      {
-        id: "office",
-        name: language === "en" ? "Office" : language === "zh" ? "办公" : "Văn phòng",
-        count: 45,
-      },
-    ],
-  },
-  {
-    id: "weapons",
-    name: language === "en" ? "Weapons" : language === "zh" ? "武器" : "Vũ khí",
-    description:
-      language === "en"
-        ? "Swords, guns, medieval and futuristic weapons"
-        : language === "zh"
-          ? "剑、枪、中世纪和未来武器"
-          : "Kiếm, súng, vũ khí trung cổ và tương lai",
-    count: 45,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: false,
-    subcategories: [
-      {
-        id: "melee",
-        name: language === "en" ? "Melee" : language === "zh" ? "近战" : "Cận chiến",
-        count: 28,
-      },
-      {
-        id: "firearms",
-        name: language === "en" ? "Firearms" : language === "zh" ? "火器" : "Súng",
-        count: 17,
-      },
-    ],
-  },
-  {
-    id: "nature",
-    name: language === "en" ? "Nature" : language === "zh" ? "自然" : "Thiên nhiên",
-    description:
-      language === "en"
-        ? "Trees, plants, rocks, landscapes and natural elements"
-        : language === "zh"
-          ? "树木、植物、岩石、景观和自然元素"
-          : "Cây cối, thực vật, đá, cảnh quan và các yếu tố tự nhiên",
-    count: 78,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: false,
-    subcategories: [
-      {
-        id: "trees",
-        name: language === "en" ? "Trees" : language === "zh" ? "树木" : "Cây cối",
-        count: 45,
-      },
-      {
-        id: "rocks",
-        name: language === "en" ? "Rocks" : language === "zh" ? "岩石" : "Đá",
-        count: 33,
-      },
-    ],
-  },
-  {
-    id: "electronics",
-    name: language === "en" ? "Electronics" : language === "zh" ? "电子产品" : "Điện tử",
-    description:
-      language === "en"
-        ? "Phones, computers, gadgets and electronic devices"
-        : language === "zh"
-          ? "手机、电脑、小工具和电子设备"
-          : "Điện thoại, máy tính, thiết bị và đồ điện tử",
-    count: 56,
-    image: "/placeholder.svg?height=300&width=300",
-    trending: true,
-    subcategories: [
-      {
-        id: "phones",
-        name: language === "en" ? "Phones" : language === "zh" ? "手机" : "Điện thoại",
-        count: 23,
-      },
-      {
-        id: "computers",
-        name: language === "en" ? "Computers" : language === "zh" ? "电脑" : "Máy tính",
-        count: 33,
-      },
-    ],
-  },
-]
+// API function to fetch categories
+async function fetchCategories(): Promise<Category[]> {
+  const response = await fetch('/api/categories')
+  if (!response.ok) {
+    throw new Error('Failed to fetch categories')
+  }
+  return response.json()
+}
 
-const getFeaturedCategories = (language: string) => [
-  {
-    id: "new-releases",
-    name: language === "en" ? "New Releases" : language === "zh" ? "新发布" : "Mới phát hành",
-    description:
-      language === "en"
-        ? "Latest 3D models added this week"
-        : language === "zh"
-          ? "本周新增的最新3D模型"
-          : "Mô hình 3D mới nhất được thêm tuần này",
-    count: 24,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: language === "en" ? "New" : language === "zh" ? "新" : "Mới",
-    badgeColor: "bg-green-500",
-  },
-  {
-    id: "trending",
-    name: language === "en" ? "Trending Now" : language === "zh" ? "热门趋势" : "Xu hướng",
-    description:
-      language === "en"
-        ? "Most popular models this month"
-        : language === "zh"
-          ? "本月最受欢迎的模型"
-          : "Mô hình phổ biến nhất tháng này",
-    count: 45,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: language === "en" ? "Hot" : language === "zh" ? "热门" : "Hot",
-    badgeColor: "bg-red-500",
-  },
-  {
-    id: "free",
-    name: language === "en" ? "Free Models" : language === "zh" ? "免费模型" : "Mô hình miễn phí",
-    description:
-      language === "en"
-        ? "High-quality free 3D models"
-        : language === "zh"
-          ? "高质量免费3D模型"
-          : "Mô hình 3D miễn phí chất lượng cao",
-    count: 89,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: language === "en" ? "Free" : language === "zh" ? "免费" : "Miễn phí",
-    badgeColor: "bg-blue-500",
-  },
-]
+// Helper function to get category display name based on language
+function getCategoryDisplayName(category: Category, language: string): string {
+  // For now, return the category name as is
+  // In the future, you can add localization logic here
+  return category.name
+}
+
+// Helper function to get category description based on language
+function getCategoryDescription(category: Category, language: string): string {
+  // For now, return the category description as is
+  // In the future, you can add localization logic here
+  return category.description || ''
+}
+
+// Helper function to get featured categories (top categories by product count)
+function getFeaturedCategories(categories: Category[], language: string): Category[] {
+  return categories
+    .filter(category => category._count.products > 20) // Only categories with more than 20 products
+    .sort((a, b) => b._count.products - a._count.products) // Sort by product count descending
+    .slice(0, 3) // Take top 3
+}
+
 
 export default function CategoriesPage() {
   const { language, t } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState("name")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [sortBy, setSortBy] = useState("popular")
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const categories = getCategories(language)
-  const featuredCategories = getFeaturedCategories(language)
+  // Fetch categories on component mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await fetchCategories()
+        setCategories(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load categories')
+        console.error('Error loading categories:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadCategories()
+  }, [])
+
+  const featuredCategories = getFeaturedCategories(categories, language)
 
   const sortOptions = [
     {
@@ -310,21 +95,21 @@ export default function CategoriesPage() {
 
   // Filter categories based on search
   const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    getCategoryDisplayName(category, language).toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Sort categories
   const sortedCategories = [...filteredCategories].sort((a, b) => {
     switch (sortBy) {
       case "name":
-        return a.name.localeCompare(b.name)
+        return getCategoryDisplayName(a, language).localeCompare(getCategoryDisplayName(b, language))
       case "count":
-        return b.count - a.count
-      case "newest":
-        return b.id.localeCompare(a.id)
-      case "popular":
+        return b._count.products - a._count.products
+      case "trending":
+        // For now, sort by product count as trending indicator
+        return b._count.products - a._count.products
       default:
-        return b.trending ? 1 : -1
+        return 0
     }
   })
 
@@ -345,51 +130,81 @@ export default function CategoriesPage() {
           </p>
         </div>
 
-        {/* Featured Categories */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-[#0e1a13] mb-6 flex items-center">
-            <TrendingUp className="w-6 h-6 mr-2 text-[#39e079]" />
-            {language === "en" ? "Featured Collections" : language === "zh" ? "精选收藏" : "Bộ sưu tập nổi bật"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredCategories.map((category) => (
-              <Link key={category.id} href={`/categories/${category.id}`}>
-                <Card className="border-[#d1e6d9] hover:shadow-lg transition-all group cursor-pointer h-full">
-                  <CardContent className="p-6">
-                    <div className="relative mb-4">
-                      <div className="relative w-full h-32 overflow-hidden rounded-lg">
-                        <Image
-                          src={category.image || "/placeholder.svg"}
-                          alt={category.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <Badge className={`absolute top-2 right-2 ${category.badgeColor} text-white`}>
-                        {category.badge}
-                      </Badge>
-                    </div>
-                    <h3 className="font-semibold text-[#0e1a13] mb-2 group-hover:text-[#39e079] transition-colors">
-                      {category.name}
-                    </h3>
-                    <p className="text-sm text-[#51946b] mb-3">{category.description}</p>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="bg-[#e8f2ec] text-[#51946b]">
-                        {category.count} {language === "en" ? "models" : language === "zh" ? "个模型" : "mô hình"}
-                      </Badge>
-                      <ArrowRight className="w-4 h-4 text-[#39e079] group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-[#39e079]" />
+            <span className="ml-2 text-[#51946b]">
+              {language === "en" ? "Loading categories..." : language === "zh" ? "加载分类中..." : "Đang tải danh mục..."}
+            </span>
           </div>
-        </section>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-semibold text-[#0e1a13] mb-2">
+              {language === "en" ? "Error Loading Categories" : language === "zh" ? "加载分类出错" : "Lỗi tải danh mục"}
+            </h3>
+            <p className="text-[#51946b] mb-4">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90"
+            >
+              {language === "en" ? "Retry" : language === "zh" ? "重试" : "Thử lại"}
+            </Button>
+          </div>
+        )}
+
+        {/* Featured Categories */}
+        {!loading && !error && featuredCategories.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-[#0e1a13] mb-6 flex items-center">
+              <TrendingUp className="w-6 h-6 mr-2 text-[#39e079]" />
+              {language === "en" ? "Featured Collections" : language === "zh" ? "精选收藏" : "Bộ sưu tập nổi bật"}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {featuredCategories.map((category) => (
+                <Link key={category.id} href={`/categories/${category.slug || category.id}`}>
+                  <Card className="border-[#d1e6d9] hover:shadow-lg transition-all group cursor-pointer h-full">
+                    <CardContent className="p-6">
+                      <div className="relative mb-4">
+                        <div className="relative w-full h-32 overflow-hidden rounded-lg">
+                          <Image
+                            src={category.image || "/placeholder.svg"}
+                            alt={getCategoryDisplayName(category, language)}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                        <Badge className="absolute top-2 right-2 bg-[#39e079] text-[#0e1a13]">
+                          {language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật"}
+                        </Badge>
+                      </div>
+                      <h3 className="font-semibold text-[#0e1a13] mb-2 group-hover:text-[#39e079] transition-colors">
+                        {getCategoryDisplayName(category, language)}
+                      </h3>
+                      <p className="text-sm text-[#51946b] mb-3">{getCategoryDescription(category, language)}</p>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="bg-[#e8f2ec] text-[#51946b]">
+                          {category._count.products} {language === "en" ? "models" : language === "zh" ? "个模型" : "mô hình"}
+                        </Badge>
+                        <ArrowRight className="w-4 h-4 text-[#39e079] group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Search and Filter Bar */}
-        <div className="mb-8">
-          <Card className="border-[#d1e6d9]">
-            <CardContent className="p-6">
+        {!loading && !error && (
+          <div className="mb-8">
+            <Card className="border-[#d1e6d9]">
+              <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4 items-center">
                 {/* Search */}
                 <div className="relative flex-1">
@@ -448,20 +263,22 @@ export default function CategoriesPage() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Categories Grid/List */}
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-[#0e1a13]">
-              {language === "en" ? "All Categories" : language === "zh" ? "所有分类" : "Tất cả Danh mục"}
-            </h2>
-            <span className="text-[#51946b]">
-              {sortedCategories.length} {language === "en" ? "categories" : language === "zh" ? "个分类" : "danh mục"}
-            </span>
-          </div>
+        {!loading && !error && (
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[#0e1a13]">
+                {language === "en" ? "All Categories" : language === "zh" ? "所有分类" : "Tất cả Danh mục"}
+              </h2>
+              <span className="text-[#51946b]">
+                {sortedCategories.length} {language === "en" ? "categories" : language === "zh" ? "个分类" : "danh mục"}
+              </span>
+            </div>
 
           {sortedCategories.length > 0 ? (
             <div
@@ -472,21 +289,21 @@ export default function CategoriesPage() {
               }
             >
               {sortedCategories.map((category) => (
-                <Link key={category.id} href={`/categories/${category.id}`}>
+                <Link key={category.id} href={`/categories/${category.slug || category.id}`}>
                   <Card className="border-[#d1e6d9] hover:shadow-lg transition-all group cursor-pointer h-full">
                     <CardContent className={viewMode === "grid" ? "p-6" : "p-4 flex gap-4"}>
                       <div className={viewMode === "grid" ? "" : "w-24 flex-shrink-0"}>
                         <div className="relative w-full h-32 mb-4 overflow-hidden rounded-lg">
                           <Image
                             src={category.image || "/placeholder.svg"}
-                            alt={category.name}
+                            alt={getCategoryDisplayName(category, language)}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform"
                           />
-                          {category.trending && (
+                          {category._count.products > 50 && (
                             <Badge className="absolute top-2 right-2 bg-[#39e079] text-[#0e1a13]">
                               <TrendingUp className="w-3 h-3 mr-1" />
-                              {language === "en" ? "Trending" : language === "zh" ? "热门" : "Xu hướng"}
+                              {language === "en" ? "Popular" : language === "zh" ? "热门" : "Phổ biến"}
                             </Badge>
                           )}
                         </div>
@@ -494,44 +311,27 @@ export default function CategoriesPage() {
 
                       <div className="flex-1">
                         <h3 className="font-semibold text-[#0e1a13] mb-2 group-hover:text-[#39e079] transition-colors">
-                          {category.name}
+                          {getCategoryDisplayName(category, language)}
                         </h3>
-                        <p className="text-sm text-[#51946b] mb-4 line-clamp-2">{category.description}</p>
+                        <p className="text-sm text-[#51946b] mb-4 line-clamp-2">{getCategoryDescription(category, language)}</p>
 
                         <div className="space-y-3">
                           {/* Model Count */}
                           <div className="flex items-center justify-between">
                             <Badge variant="secondary" className="bg-[#e8f2ec] text-[#51946b]">
-                              {category.count} {language === "en" ? "models" : language === "zh" ? "个模型" : "mô hình"}
+                              {category._count.products} {language === "en" ? "models" : language === "zh" ? "个模型" : "mô hình"}
                             </Badge>
                             <ArrowRight className="w-4 h-4 text-[#39e079] group-hover:translate-x-1 transition-transform" />
                           </div>
 
-                          {/* Subcategories */}
-                          {category.subcategories && category.subcategories.length > 0 && (
-                            <div className="space-y-2">
-                              <h4 className="text-xs font-medium text-[#51946b] uppercase tracking-wide">
-                                {language === "en" ? "Subcategories" : language === "zh" ? "子分类" : "Danh mục con"}
-                              </h4>
-                              <div className="flex flex-wrap gap-1">
-                                {category.subcategories.slice(0, 3).map((sub) => (
-                                  <Badge
-                                    key={sub.id}
-                                    variant="outline"
-                                    className="text-xs border-[#d1e6d9] text-[#51946b] hover:border-[#39e079] hover:text-[#39e079] transition-colors"
-                                  >
-                                    {sub.name} ({sub.count})
-                                  </Badge>
-                                ))}
-                                {category.subcategories.length > 3 && (
-                                  <Badge variant="outline" className="text-xs border-[#d1e6d9] text-[#51946b]">
-                                    +{category.subcategories.length - 3}{" "}
-                                    {language === "en" ? "more" : language === "zh" ? "更多" : "khác"}
-                                  </Badge>
-                                )}
-                              </div>
+                          {/* Category Info */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs border-[#d1e6d9] text-[#51946b]">
+                                {language === "en" ? "Category" : language === "zh" ? "分类" : "Danh mục"}: {category.slug}
+                              </Badge>
                             </div>
-                          )}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -561,34 +361,37 @@ export default function CategoriesPage() {
               </Button>
             </div>
           )}
-        </section>
+          </section>
+        )}
 
         {/* Popular Tags */}
-        <section className="mt-16">
-          <h2 className="text-2xl font-bold text-[#0e1a13] mb-6">
-            {language === "en" ? "Popular Tags" : language === "zh" ? "热门标签" : "Thẻ phổ biến"}
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {[
-              language === "en" ? "Modern" : language === "zh" ? "现代" : "Hiện đại",
-              language === "en" ? "Realistic" : language === "zh" ? "写实" : "Thực tế",
-              language === "en" ? "Low Poly" : language === "zh" ? "低多边形" : "Low Poly",
-              language === "en" ? "Textured" : language === "zh" ? "有纹理" : "Có texture",
-              language === "en" ? "Rigged" : language === "zh" ? "绑定" : "Rigging",
-              language === "en" ? "Animated" : language === "zh" ? "动画" : "Animation",
-              language === "en" ? "Game Ready" : language === "zh" ? "游戏就绪" : "Game Ready",
-              language === "en" ? "PBR" : language === "zh" ? "PBR" : "PBR",
-            ].map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="bg-[#e8f2ec] text-[#51946b] hover:bg-[#39e079] hover:text-[#0e1a13] cursor-pointer transition-colors"
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </section>
+        {!loading && !error && (
+          <section className="mt-16">
+            <h2 className="text-2xl font-bold text-[#0e1a13] mb-6">
+              {language === "en" ? "Popular Tags" : language === "zh" ? "热门标签" : "Thẻ phổ biến"}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {[
+                language === "en" ? "Modern" : language === "zh" ? "现代" : "Hiện đại",
+                language === "en" ? "Realistic" : language === "zh" ? "写实" : "Thực tế",
+                language === "en" ? "Low Poly" : language === "zh" ? "低多边形" : "Low Poly",
+                language === "en" ? "Textured" : language === "zh" ? "有纹理" : "Có texture",
+                language === "en" ? "Rigged" : language === "zh" ? "绑定" : "Rigging",
+                language === "en" ? "Animated" : language === "zh" ? "动画" : "Animation",
+                language === "en" ? "Game Ready" : language === "zh" ? "游戏就绪" : "Game Ready",
+                language === "en" ? "PBR" : language === "zh" ? "PBR" : "PBR",
+              ].map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="bg-[#e8f2ec] text-[#51946b] hover:bg-[#39e079] hover:text-[#0e1a13] cursor-pointer transition-colors"
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )

@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Grid, List, SlidersHorizontal, Star } from "lucide-react"
+import { ArrowLeft, Grid, List, SlidersHorizontal, Star, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,188 +16,117 @@ import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
 import { useLanguage } from "@/hooks/use-language"
 import { formatCurrency } from "@/lib/i18n"
+import { Category, Product } from "@/types/api"
+import { logger } from "@/lib/logger"
 
-// Mock data cho category details
-const getCategoryData = (id: string, language: string) => {
-  const categoryMap: Record<string, any> = {
-    architecture: {
-      id: "architecture",
-      name: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-      description:
-        language === "en"
-          ? "Explore our comprehensive collection of architectural 3D models including residential buildings, commercial structures, and urban planning elements. Perfect for architects, game developers, and visualization professionals."
-          : language === "zh"
-            ? "探索我们全面的建筑3D模型收藏，包括住宅建筑、商业结构和城市规划元素。非常适合建筑师、游戏开发者和可视化专业人士。"
-            : "Khám phá bộ sưu tập toàn diện các mô hình 3D kiến trúc bao gồm các tòa nhà dân cư, cấu trúc thương mại và các yếu tố quy hoạch đô thị. Hoàn hảo cho kiến trúc sư, nhà phát triển game và chuyên gia trực quan hóa.",
-      image: "/placeholder.svg?height=400&width=800",
-      totalModels: 156,
-      subcategories: [
-        {
-          id: "residential",
-          name: language === "en" ? "Residential" : language === "zh" ? "住宅" : "Nhà ở",
-          count: 89,
-          image: "/placeholder.svg?height=200&width=200",
-        },
-        {
-          id: "commercial",
-          name: language === "en" ? "Commercial" : language === "zh" ? "商业" : "Thương mại",
-          count: 45,
-          image: "/placeholder.svg?height=200&width=200",
-        },
-        {
-          id: "industrial",
-          name: language === "en" ? "Industrial" : language === "zh" ? "工业" : "Công nghiệp",
-          count: 22,
-          image: "/placeholder.svg?height=200&width=200",
-        },
-      ],
-    },
-    vehicles: {
-      id: "vehicles",
-      name: language === "en" ? "Vehicles" : language === "zh" ? "车辆" : "Xe cộ",
-      description:
-        language === "en"
-          ? "Discover our extensive vehicle collection featuring cars, trucks, aircraft, boats, and futuristic transportation. High-quality models perfect for games, films, and automotive visualization."
-          : language === "zh"
-            ? "发现我们广泛的车辆收藏，包括汽车、卡车、飞机、船只和未来交通工具。高质量模型，非常适合游戏、电影和汽车可视化。"
-            : "Khám phá bộ sưu tập xe cộ rộng lớn của chúng tôi bao gồm ô tô, xe tải, máy bay, thuyền và phương tiện giao thông tương lai. Mô hình chất lượng cao hoàn hảo cho game, phim và trực quan hóa ô tô.",
-      image: "/placeholder.svg?height=400&width=800",
-      totalModels: 89,
-      subcategories: [
-        {
-          id: "cars",
-          name: language === "en" ? "Cars" : language === "zh" ? "汽车" : "Ô tô",
-          count: 45,
-          image: "/placeholder.svg?height=200&width=200",
-        },
-        {
-          id: "aircraft",
-          name: language === "en" ? "Aircraft" : language === "zh" ? "飞机" : "Máy bay",
-          count: 23,
-          image: "/placeholder.svg?height=200&width=200",
-        },
-        {
-          id: "boats",
-          name: language === "en" ? "Boats" : language === "zh" ? "船只" : "Thuyền",
-          count: 21,
-          image: "/placeholder.svg?height=200&width=200",
-        },
-      ],
-    },
-  }
-
-  return (
-    categoryMap[id] || {
-      id,
-      name: language === "en" ? "Category" : language === "zh" ? "分类" : "Danh mục",
-      description: language === "en" ? "Category description" : language === "zh" ? "分类描述" : "Mô tả danh mục",
-      image: "/placeholder.svg?height=400&width=800",
-      totalModels: 0,
-      subcategories: [],
+// API functions
+async function fetchCategoryById(id: string): Promise<Category | null> {
+  try {
+    const response = await fetch(`/api/categories/${id}`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch category')
     }
-  )
+    const data = await response.json()
+    return data.category || null
+  } catch (error) {
+    console.error('Error fetching category:', error)
+    return null
+  }
 }
 
-// Mock products for category
-const getCategoryProducts = (categoryId: string, language: string) => [
+async function fetchProductsByCategory(categoryId: string, params: {
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  minPrice?: number
+  maxPrice?: number
+  search?: string
+} = {}): Promise<{ products: Product[], total: number }> {
+  try {
+    const searchParams = new URLSearchParams({
+      page: (params.page || 1).toString(),
+      limit: (params.limit || 12).toString(),
+      ...(params.sortBy && { sortBy: params.sortBy }),
+      ...(params.sortOrder && { sortOrder: params.sortOrder }),
+      ...(params.minPrice && { minPrice: params.minPrice.toString() }),
+      ...(params.maxPrice && { maxPrice: params.maxPrice.toString() }),
+      ...(params.search && { search: params.search }),
+    })
+
+    const response = await fetch(`/api/categories/${categoryId}/products?${searchParams}`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch products')
+    }
+    const data = await response.json()
+    return {
+      products: data.products || [],
+      total: data.total || 0
+    }
+  } catch (error) {
+    console.error('Error fetching products:', error)
+    return { products: [], total: 0 }
+  }
+}
+
+// Helper functions for display names
+const getCategoryDisplayName = (category: Category, lang: string) => {
+  if (lang === 'vi' && category.name_vi) return category.name_vi
+  return category.name
+}
+
+const getCategoryDescription = (category: Category, lang: string) => {
+  if (lang === 'vi' && category.description_vi) return category.description_vi
+  return category.description || ''
+}
+
+const getProductDisplayName = (product: Product, lang: string) => {
+  if (lang === 'vi' && product.name_vi) return product.name_vi
+  return product.name
+}
+
+const getProductDescription = (product: Product, lang: string) => {
+  if (lang === 'vi' && product.description_vi) return product.description_vi
+  return product.description || ''
+}
+
+// Fallback mock data for when API fails
+const getFallbackProducts = (language: string): Product[] => [
   {
-    id: "1",
+    id: "fallback-1",
     name: language === "en" ? "Modern Villa 3D" : language === "zh" ? "现代别墅3D" : "Villa Hiện Đại 3D",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Residential" : language === "zh" ? "住宅" : "Nhà ở",
-    price: 299000,
-    originalPrice: 399000,
+    slug: "modern-villa-3d",
+    description: language === "en" 
+      ? "High-quality modern villa 3D model with detailed textures and realistic materials."
+      : language === "zh"
+      ? "高质量现代别墅3D模型，具有详细纹理和逼真材质。"
+      : "Mô hình 3D biệt thự hiện đại chất lượng cao với kết cấu chi tiết và vật liệu thực tế.",
+    price: 299,
+    originalPrice: 399,
     rating: 4.8,
-    reviews: 124,
-    image: "/placeholder.svg?height=300&width=300",
+    downloads: 2340,
+    imageUrl: "/placeholder.svg?height=300&width=300",
+    images: ["/placeholder.svg?height=300&width=300"],
     format: "FBX",
-    polygons: 15000,
-    textures: true,
-    rigged: false,
-    animated: false,
+    fileSize: "45.2 MB",
+    polygons: 125000,
+    vertices: 89000,
+    tags: "modern,villa,architecture",
     featured: true,
-    discount: 25,
-  },
-  {
-    id: "2",
-    name: language === "en" ? "Office Building Complex" : language === "zh" ? "办公楼群" : "Khu Phức Hợp Văn Phòng",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Commercial" : language === "zh" ? "商业" : "Thương mại",
-    price: 550000,
-    rating: 4.5,
-    reviews: 43,
-    image: "/placeholder.svg?height=300&width=300",
-    format: "MAX",
-    polygons: 45000,
-    textures: true,
-    rigged: false,
+    specifications: {
+      hasTextures: true,
+      isRigged: false,
+      isAnimated: false
+    },
     animated: false,
-    featured: false,
-  },
-  {
-    id: "3",
-    name: language === "en" ? "Luxury Apartment" : language === "zh" ? "豪华公寓" : "Căn Hộ Sang Trọng",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Residential" : language === "zh" ? "住宅" : "Nhà ở",
-    price: 380000,
-    rating: 4.7,
-    reviews: 78,
-    image: "/placeholder.svg?height=300&width=300",
-    format: "BLEND",
-    polygons: 28000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: true,
-  },
-  {
-    id: "4",
-    name: language === "en" ? "Industrial Warehouse" : language === "zh" ? "工业仓库" : "Kho Công Nghiệp",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Industrial" : language === "zh" ? "工业" : "Công nghiệp",
-    price: 220000,
-    rating: 4.3,
-    reviews: 32,
-    image: "/placeholder.svg?height=300&width=300",
-    format: "OBJ",
-    polygons: 18000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: false,
-  },
-  {
-    id: "5",
-    name: language === "en" ? "Shopping Mall" : language === "zh" ? "购物中心" : "Trung Tâm Mua Sắm",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Commercial" : language === "zh" ? "商业" : "Thương mại",
-    price: 650000,
-    rating: 4.9,
-    reviews: 156,
-    image: "/placeholder.svg?height=300&width=300",
-    format: "FBX",
-    polygons: 65000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: true,
-  },
-  {
-    id: "6",
-    name: language === "en" ? "Cozy House" : language === "zh" ? "温馨小屋" : "Ngôi Nhà Ấm Cúng",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Residential" : language === "zh" ? "住宅" : "Nhà ở",
-    price: 180000,
-    rating: 4.6,
-    reviews: 89,
-    image: "/placeholder.svg?height=300&width=300",
-    format: "3DS",
-    polygons: 12000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: false,
-  },
+    category: {
+      id: "1",
+      name: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
+      slug: "architecture"
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
 ]
 
 const formats = ["FBX", "OBJ", "BLEND", "MAX", "3DS", "DAE"]
@@ -206,7 +135,6 @@ export default function CategoryDetailPage() {
   const params = useParams()
   const { language, t } = useLanguage()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState([0, 1000000])
   const [selectedFormats, setSelectedFormats] = useState<string[]>([])
   const [minRating, setMinRating] = useState(0)
@@ -214,9 +142,99 @@ export default function CategoryDetailPage() {
   const [isRigged, setIsRigged] = useState(false)
   const [isAnimated, setIsAnimated] = useState(false)
   const [sortBy, setSortBy] = useState("featured")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  
+  // API state
+  const [category, setCategory] = useState<Category | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [totalProducts, setTotalProducts] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const categoryData = getCategoryData(params.id as string, language)
-  const allProducts = getCategoryProducts(params.id as string, language)
+  // Load category data
+  useEffect(() => {
+    const loadCategory = async () => {
+      if (!params.id) return
+      
+      setIsLoading(true)
+      setError(null)
+      try {
+        logger.info('Loading category', { categoryId: params.id })
+        const categoryData = await fetchCategoryById(params.id as string)
+        if (categoryData) {
+          setCategory(categoryData)
+          logger.info('Category loaded successfully', { category: categoryData.name })
+        } else {
+          const errorMsg = language === 'vi' ? 'Không tìm thấy danh mục' : 'Category not found'
+          setError(errorMsg)
+          logger.warn('Category not found', { categoryId: params.id })
+        }
+      } catch (error) {
+        logger.error('Error loading category', { error, categoryId: params.id })
+        const errorMsg = language === 'vi' ? 'Lỗi khi tải danh mục' : 'Error loading category'
+        setError(errorMsg)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadCategory()
+  }, [params.id, language])
+
+  // Load products
+  useEffect(() => {
+    const loadProducts = async () => {
+      if (!params.id) return
+      
+      setIsLoadingProducts(true)
+      try {
+        logger.info('Loading products for category', { 
+          categoryId: params.id, 
+          page: currentPage, 
+          sortBy, 
+          priceRange,
+          searchQuery 
+        })
+        
+        const { products: productData, total } = await fetchProductsByCategory(
+          params.id as string,
+          {
+            page: currentPage,
+            limit: 12,
+            sortBy: sortBy === 'featured' ? 'createdAt' : sortBy,
+            sortOrder: sortBy === 'price-low' ? 'asc' : 'desc',
+            minPrice: priceRange[0],
+            maxPrice: priceRange[1],
+            search: searchQuery || undefined,
+          }
+        )
+        
+        if (productData && productData.length > 0) {
+          setProducts(productData)
+          setTotalProducts(total)
+          logger.info('Products loaded successfully', { count: productData.length, total })
+        } else {
+          // Fallback to mock data if no products found
+          const fallbackProducts = getFallbackProducts(language)
+          setProducts(fallbackProducts)
+          setTotalProducts(fallbackProducts.length)
+          logger.warn('No products found, using fallback data', { categoryId: params.id })
+        }
+      } catch (error) {
+        logger.error('Error loading products, using fallback data', { error, categoryId: params.id })
+        // Fallback to mock data on error
+        const fallbackProducts = getFallbackProducts(language)
+        setProducts(fallbackProducts)
+        setTotalProducts(fallbackProducts.length)
+      } finally {
+        setIsLoadingProducts(false)
+      }
+    }
+
+    loadProducts()
+  }, [params.id, currentPage, sortBy, priceRange, searchQuery, language])
 
   const sortOptions = [
     { value: "featured", label: language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật" },
@@ -227,28 +245,21 @@ export default function CategoryDetailPage() {
     { value: "popular", label: t.sort.popular },
   ]
 
-  // Filter and sort products
+  // Filter products (client-side filtering for additional filters not handled by API)
   const filteredProducts = useMemo(() => {
-    let filtered = allProducts.filter((product) => {
-      // Subcategory filter
-      if (selectedSubcategories.length > 0) {
-        if (!selectedSubcategories.includes(product.subcategory)) return false
-      }
-
-      // Price filter
-      if (product.price < priceRange[0] || product.price > priceRange[1]) return false
-
-      // Format filter
-      if (selectedFormats.length > 0) {
+    let filtered = products.filter((product) => {
+      // Format filter (if we have format data)
+      if (selectedFormats.length > 0 && product.format) {
         if (!selectedFormats.includes(product.format)) return false
       }
 
       // Rating filter
-      if (product.rating < minRating) return false
+      if (product.rating && product.rating < minRating) return false
 
-      // Feature filters
-      if (hasTextures && !product.textures) return false
-      if (isRigged && !product.rigged) return false
+      // Feature filters (if we have these properties)
+      if (hasTextures && product.specifications && !product.specifications.hasTextures) return false
+      if (isRigged && product.specifications && !product.specifications.isRigged) return false
+      if (isAnimated && product.specifications && !product.specifications.isAnimated) return false
       if (isAnimated && !product.animated) return false
 
       return true
@@ -260,7 +271,7 @@ export default function CategoryDetailPage() {
         filtered = filtered.sort((a, b) => {
           if (a.featured && !b.featured) return -1
           if (!a.featured && b.featured) return 1
-          return b.rating - a.rating
+          return (b.rating || 0) - (a.rating || 0)
         })
         break
       case "newest":
@@ -273,16 +284,15 @@ export default function CategoryDetailPage() {
         filtered = filtered.sort((a, b) => b.price - a.price)
         break
       case "rating":
-        filtered = filtered.sort((a, b) => b.rating - a.rating)
+        filtered = filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
         break
       case "popular":
-        filtered = filtered.sort((a, b) => b.reviews - a.reviews)
+        filtered = filtered.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0))
         break
     }
 
     return filtered
   }, [
-    selectedSubcategories,
     priceRange,
     selectedFormats,
     minRating,
@@ -290,11 +300,10 @@ export default function CategoryDetailPage() {
     isRigged,
     isAnimated,
     sortBy,
-    allProducts,
+    products,
   ])
 
   const clearFilters = () => {
-    setSelectedSubcategories([])
     setPriceRange([0, 1000000])
     setSelectedFormats([])
     setMinRating(0)
@@ -304,7 +313,6 @@ export default function CategoryDetailPage() {
   }
 
   const activeFiltersCount =
-    selectedSubcategories.length +
     selectedFormats.length +
     (priceRange[0] > 0 || priceRange[1] < 1000000 ? 1 : 0) +
     (minRating > 0 ? 1 : 0) +
@@ -314,38 +322,7 @@ export default function CategoryDetailPage() {
 
   const FilterContent = () => (
     <div className="space-y-6">
-      {/* Subcategories */}
-      {categoryData.subcategories.length > 0 && (
-        <>
-          <div>
-            <h3 className="font-semibold text-[#0e1a13] mb-3">
-              {language === "en" ? "Subcategories" : language === "zh" ? "子分类" : "Danh mục con"}
-            </h3>
-            <div className="space-y-2">
-              {categoryData.subcategories.map((subcategory: any) => (
-                <div key={subcategory.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={subcategory.id}
-                    checked={selectedSubcategories.includes(subcategory.name)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedSubcategories([...selectedSubcategories, subcategory.name])
-                      } else {
-                        setSelectedSubcategories(selectedSubcategories.filter((c) => c !== subcategory.name))
-                      }
-                    }}
-                  />
-                  <Label htmlFor={subcategory.id} className="flex-1 text-sm">
-                    {subcategory.name}
-                  </Label>
-                  <span className="text-xs text-[#51946b]">({subcategory.count})</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <Separator />
-        </>
-      )}
+      {/* Note: Subcategories filter removed as API doesn't currently support subcategories */}
 
       {/* Price Range */}
       <div>
@@ -442,6 +419,35 @@ export default function CategoryDetailPage() {
     </div>
   )
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8fbfa] flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>{language === "en" ? "Loading category..." : language === "zh" ? "加载分类中..." : "Đang tải danh mục..."}</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !category) {
+    return (
+      <div className="min-h-screen bg-[#f8fbfa] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-[#0e1a13] mb-2">
+            {language === "en" ? "Category not found" : language === "zh" ? "未找到分类" : "Không tìm thấy danh mục"}
+          </h1>
+          <p className="text-[#51946b] mb-4">{error || "Category does not exist"}</p>
+          <Button asChild>
+            <Link href="/categories">
+              {language === "en" ? "Back to Categories" : language === "zh" ? "返回分类" : "Quay lại Danh mục"}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fbfa]">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -455,7 +461,7 @@ export default function CategoryDetailPage() {
             {language === "en" ? "Categories" : language === "zh" ? "分类" : "Danh mục"}
           </Link>
           <span>/</span>
-          <span className="text-[#0e1a13]">{categoryData.name}</span>
+          <span className="text-[#0e1a13]">{getCategoryDisplayName(category, language)}</span>
         </div>
 
         {/* Back Button */}
@@ -470,61 +476,26 @@ export default function CategoryDetailPage() {
         <div className="mb-8">
           <div className="relative w-full h-48 md:h-64 overflow-hidden rounded-xl mb-6">
             <Image
-              src={categoryData.image || "/placeholder.svg"}
-              alt={categoryData.name}
+              src={category.image || "/placeholder.svg"}
+              alt={getCategoryDisplayName(category, language)}
               fill
               className="object-cover"
             />
             <div className="absolute inset-0 bg-black/40 flex items-end">
               <div className="p-6 text-white">
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">{categoryData.name}</h1>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">{getCategoryDisplayName(category, language)}</h1>
                 <p className="text-lg opacity-90">
-                  {categoryData.totalModels}{" "}
+                  {totalProducts}{" "}
                   {language === "en" ? "models available" : language === "zh" ? "个可用模型" : "mô hình có sẵn"}
                 </p>
               </div>
             </div>
           </div>
 
-          <p className="text-[#51946b] text-lg max-w-4xl">{categoryData.description}</p>
+          <p className="text-[#51946b] text-lg max-w-4xl">{getCategoryDescription(category, language)}</p>
         </div>
 
-        {/* Subcategories */}
-        {categoryData.subcategories.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-2xl font-bold text-[#0e1a13] mb-6">
-              {language === "en"
-                ? "Browse by Subcategory"
-                : language === "zh"
-                  ? "按子分类浏览"
-                  : "Duyệt theo danh mục con"}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categoryData.subcategories.map((subcategory: any) => (
-                <Link key={subcategory.id} href={`/categories/${categoryData.id}/${subcategory.id}`}>
-                  <Card className="border-[#d1e6d9] hover:shadow-lg transition-all group cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="relative w-full h-32 mb-4 overflow-hidden rounded-lg">
-                        <Image
-                          src={subcategory.image || "/placeholder.svg"}
-                          alt={subcategory.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <h3 className="font-semibold text-[#0e1a13] mb-2 group-hover:text-[#39e079] transition-colors">
-                        {subcategory.name}
-                      </h3>
-                      <Badge variant="secondary" className="bg-[#e8f2ec] text-[#51946b]">
-                        {subcategory.count} {language === "en" ? "models" : language === "zh" ? "个模型" : "mô hình"}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Note: Subcategories section removed as API doesn't currently support subcategories */}
 
         <div className="flex gap-6">
           {/* Desktop Filters Sidebar */}
@@ -619,7 +590,14 @@ export default function CategoryDetailPage() {
             </div>
 
             {/* Products Grid/List */}
-            {filteredProducts.length > 0 ? (
+            {isLoadingProducts ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span>{language === "en" ? "Loading products..." : language === "zh" ? "加载产品中..." : "Đang tải sản phẩm..."}</span>
+                </div>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div
                 className={
                   viewMode === "grid"
@@ -633,8 +611,8 @@ export default function CategoryDetailPage() {
                       <div className={viewMode === "grid" ? "" : "w-32 flex-shrink-0"}>
                         <div className="relative aspect-square mb-3 overflow-hidden rounded-lg">
                           <Image
-                            src={product.image || "/placeholder.svg"}
-                            alt={product.name}
+                            src={product.imageUrl || product.images?.[0] || "/placeholder.svg"}
+                            alt={getProductDisplayName(product, language)}
                             fill
                             className="object-cover hover:scale-105 transition-transform"
                           />
@@ -650,38 +628,42 @@ export default function CategoryDetailPage() {
                       </div>
 
                       <div className="flex-1">
-                        <Link href={`/products/${product.id}`}>
+                        <Link href={`/products/${product.slug || product.id}`}>
                           <h3 className="font-semibold text-[#0e1a13] mb-2 hover:text-[#39e079] transition-colors">
-                            {product.name}
+                            {getProductDisplayName(product, language)}
                           </h3>
                         </Link>
 
-                        <p className="text-sm text-[#51946b] mb-2">{product.subcategory}</p>
+                        <p className="text-sm text-[#51946b] mb-2 line-clamp-2">{getProductDescription(product, language)}</p>
 
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="flex items-center">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm text-[#51946b] ml-1">
-                              {product.rating} ({product.reviews})
-                            </span>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {product.format}
-                          </Badge>
+                          {product.rating && (
+                            <div className="flex items-center">
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span className="text-sm text-[#51946b] ml-1">
+                                {product.rating} ({product.downloads || product.reviewCount || product.reviews || 0})
+                              </span>
+                            </div>
+                          )}
+                          {product.format && (
+                            <Badge variant="outline" className="text-xs">
+                              {product.format}
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="font-bold text-[#0e1a13]">{formatCurrency(product.price, language)}</span>
+                          <span className="font-bold text-[#0e1a13]">{formatCurrency(Number(product.price), language)}</span>
                           {product.originalPrice && (
                             <span className="text-sm text-[#51946b] line-through">
-                              {formatCurrency(product.originalPrice, language)}
+                              {formatCurrency(Number(product.originalPrice), language)}
                             </span>
                           )}
                         </div>
 
                         <div className="flex gap-2">
                           <Button size="sm" className="flex-1 bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
-                            {t.product.add_to_cart}
+                            {language === "en" ? "Add to Cart" : language === "zh" ? "加入购物车" : "Thêm vào giỏ"}
                           </Button>
                           <Button variant="outline" size="sm" className="border-[#d1e6d9]">
                             ♡
@@ -710,7 +692,7 @@ export default function CategoryDetailPage() {
                       : "Thử điều chỉnh bộ lọc để xem thêm kết quả"}
                 </p>
                 <Button onClick={clearFilters} className="bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
-                  {t.filters.clear_filters}
+                  {language === "en" ? "Clear Filters" : language === "zh" ? "清除筛选" : "Xóa bộ lọc"}
                 </Button>
               </div>
             )}

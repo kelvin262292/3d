@@ -55,7 +55,7 @@ class MockWebSocket {
       const message = JSON.parse(data)
       if (message.type === "heartbeat_response") {
         // Handle heartbeat response
-        console.log("Heartbeat response received")
+        // Heartbeat response received
       }
     } catch (e) {
       // Ignore parsing errors
@@ -196,7 +196,7 @@ class WebSocketManager {
 
     if ("onopen" in this.ws) {
       this.ws.onopen = () => {
-        console.log("WebSocket connected")
+        // WebSocket connected
         this.connectionStatus = "connected"
         this.reconnectAttempts = 0
         this.startHeartbeat()
@@ -213,7 +213,7 @@ class WebSocketManager {
       }
 
       this.ws.onclose = () => {
-        console.log("WebSocket disconnected")
+        // WebSocket disconnected
         this.connectionStatus = "disconnected"
         this.stopHeartbeat()
         this.notifyListeners("connection_status", { status: this.connectionStatus })
@@ -235,7 +235,7 @@ class WebSocketManager {
     } else {
       // Handle MockWebSocket
       this.ws.addEventListener("open", () => {
-        console.log("Mock WebSocket connected")
+        // Mock WebSocket connected
         this.connectionStatus = "connected"
         this.reconnectAttempts = 0
         this.startHeartbeat()
@@ -252,7 +252,7 @@ class WebSocketManager {
       })
 
       this.ws.addEventListener("close", () => {
-        console.log("Mock WebSocket disconnected")
+        // Mock WebSocket disconnected
         this.connectionStatus = "disconnected"
         this.stopHeartbeat()
         this.notifyListeners("connection_status", { status: this.connectionStatus })
@@ -306,9 +306,7 @@ class WebSocketManager {
       this.reconnectAttempts++
       const delay = this.reconnectDelay * this.reconnectAttempts
 
-      console.log(
-        `Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
-      )
+      // Attempting to reconnect
 
       setTimeout(() => {
         this.connect()

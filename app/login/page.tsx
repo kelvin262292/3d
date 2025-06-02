@@ -2,38 +2,54 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useLanguage } from "@/hooks/use-language"
 import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function LoginPage() {
   const { language, t } = useLanguage()
   const router = useRouter()
   const { toast } = useToast()
+  const { user, loading, isAuthenticating, error, login, clearError } = useAuth()
 
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
 
-  const [errors, setErrors] = useState({
+  const [validationErrors, setValidationErrors] = useState({
     email: "",
     password: "",
   })
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard')
+    }
+  }, [user, loading, router])
+
+  // Clear auth errors when user starts typing
+  useEffect(() => {
+    if (error) {
+      clearError()
+    }
+  }, [email, password, clearError])
+
   const validateForm = () => {
     let isValid = true
-    const newErrors = { ...errors }
+    const newErrors = { ...validationErrors }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -43,15 +59,19 @@ export default function LoginPage() {
     } else if (!emailRegex.test(email)) {
       newErrors.email = t.validation.email_invalid
       isValid = false
+    } else {
+      newErrors.email = ""
     }
 
     // Password validation
     if (!password) {
       newErrors.password = t.validation.password_required
       isValid = false
+    } else {
+      newErrors.password = ""
     }
 
-    setErrors(newErrors)
+    setValidationErrors(newErrors)
     return isValid
   }
 
@@ -60,30 +80,22 @@ export default function LoginPage() {
 
     if (!validateForm()) return
 
-    setIsLoading(true)
-
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
+      await login(email, password, rememberMe)
+      
       toast({
         title: t.auth.login_successful,
         description: t.auth.welcome_back,
-        variant: "success",
       })
-
-      // Redirect to home page after successful login
-      setTimeout(() => {
-        router.push("/")
-      }, 1000)
-    } catch (error) {
+      
+      // Redirect will be handled by useAuth hook
+    } catch (authError: any) {
+      // Error is already set in useAuth hook, just show toast
       toast({
         title: t.common.error,
-        description: t.auth.login_error,
+        description: authError.message || t.auth.login_error,
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -100,17 +112,28 @@ export default function LoginPage() {
           </Link>
           <h1 className="text-3xl font-bold text-[#0e1a13] mb-2">{t.auth.login_title}</h1>
           <p className="text-[#51946b]">
-            {language === "en"
-              ? "Welcome back! Please sign in to your account"
-              : language === "zh"
-                ? "欢迎回来！请登录您的账户"
-                : "Chào mừng trở lại! Vui lòng đăng nhập vào tài khoản của bạn"}
+            {t.auth.welcome_back}
           </p>
         </div>
 
         <Card className="border-[#d1e6d9]">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Auth Error Display */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {error.message || t.auth.login_error}
+                    {error.field && (
+                      <span className="block text-xs mt-1">
+                        {t.validation[`${error.field}_error`] || `Error in ${error.field}`}
+                      </span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-[#0e1a13]">
@@ -121,18 +144,17 @@ export default function LoginPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder={
-                      language === "en" ? "Enter your email" : language === "zh" ? "输入您的邮箱" : "Nhập email của bạn"
-                    }
+                    placeholder={t.auth.email}
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value)
-                      if (errors.email) setErrors((prev) => ({ ...prev, email: "" }))
+                      if (validationErrors.email) setValidationErrors((prev) => ({ ...prev, email: "" }))
                     }}
-                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${errors.email ? "border-red-500" : ""}`}
+                    className={`pl-10 border-[#d1e6d9] focus:border-[#39e079] ${validationErrors.email ? "border-red-500" : ""}`}
+                    disabled={isAuthenticating || loading}
                   />
                 </div>
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                {validationErrors.email && <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>}
               </div>
 
               {/* Password Field */}
@@ -145,46 +167,53 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={
-                      language === "en"
-                        ? "Enter your password"
-                        : language === "zh"
-                          ? "输入您的密码"
-                          : "Nhập mật khẩu của bạn"
-                    }
+                    placeholder={t.auth.password}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value)
-                      if (errors.password) setErrors((prev) => ({ ...prev, password: "" }))
+                      if (validationErrors.password) setValidationErrors((prev) => ({ ...prev, password: "" }))
                     }}
-                    className={`pl-10 pr-10 border-[#d1e6d9] focus:border-[#39e079] ${
-                      errors.password ? "border-red-500" : ""
-                    }`}
+                    className={`pl-10 pr-10 border-[#d1e6d9] focus:border-[#39e079] ${validationErrors.password ? "border-red-500" : ""}`}
+                    disabled={isAuthenticating || loading}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                    disabled={isAuthenticating || loading}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-[#51946b]" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-[#51946b]" />
+                    )}
                   </Button>
                 </div>
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                {validationErrors.password && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.password}</p>
+                )}
               </div>
 
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="remember" checked={rememberMe} onCheckedChange={setRememberMe} />
-                  <Label htmlFor="remember" className="text-sm text-[#51946b]">
+                  <Checkbox
+                    id="remember"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                    disabled={isAuthenticating || loading}
+                  />
+                  <Label htmlFor="remember" className="text-sm">
                     {t.auth.remember_me}
                   </Label>
                 </div>
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-[#39e079] hover:text-[#39e079]/80 transition-colors"
+                  className={`text-sm text-primary hover:underline ${
+                    isAuthenticating || loading ? 'pointer-events-none opacity-50' : ''
+                  }`}
                 >
                   {t.auth.forgot_password}
                 </Link>
@@ -194,19 +223,21 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 size="lg"
-                disabled={isLoading}
-                className="w-full bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90"
+                disabled={isAuthenticating || loading || !email.trim() || !password}
+                className="w-full bg-[#39e079] hover:bg-[#39e079]/90 text-white font-medium py-3 transition-colors"
               >
-                {isLoading ? (
+                {isAuthenticating ? (
                   <div className="flex items-center">
-                    <div className="w-4 h-4 border-2 border-[#0e1a13] border-t-transparent rounded-full animate-spin mr-2" />
-                    {t.common.loading}
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                    {
+                      language === "en" ? "Signing in..." : language === "zh" ? "登录中..." : "Đang đăng nhập..."
+                    }
                   </div>
                 ) : (
-                  <>
+                  <div className="flex items-center">
                     {t.auth.login_title}
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </>
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </div>
                 )}
               </Button>
             </form>
@@ -220,7 +251,18 @@ export default function LoginPage() {
             </div>
 
             {/* Google Login */}
-            <Button variant="outline" size="lg" className="w-full border-[#d1e6d9] hover:bg-[#f8fbfa]">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-full border-[#d1e6d9] hover:bg-[#f8fbfa]"
+              disabled={isAuthenticating || loading}
+              onClick={() => {
+                toast({
+                  title: t.common.coming_soon,
+                  description: t.auth.google_login_coming_soon,
+                })
+              }}
+            >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -245,13 +287,14 @@ export default function LoginPage() {
             {/* Sign Up Link */}
             <div className="text-center mt-6">
               <span className="text-[#51946b]">
-                {language === "en"
-                  ? "Don't have an account?"
-                  : language === "zh"
-                    ? "还没有账户？"
-                    : "Chưa có tài khoản?"}
+                {t.auth.dont_have_account}
               </span>{" "}
-              <Link href="/register" className="text-[#39e079] hover:text-[#39e079]/80 font-medium transition-colors">
+              <Link 
+                href="/register" 
+                className={`text-[#39e079] hover:text-[#39e079]/80 font-medium transition-colors ${
+                  isAuthenticating || loading ? 'pointer-events-none opacity-50' : ''
+                }`}
+              >
                 {t.auth.create_account}
               </Link>
             </div>

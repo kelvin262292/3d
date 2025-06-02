@@ -11,6 +11,7 @@ import { useLanguage } from "@/hooks/use-language"
 import { formatCurrency } from "@/lib/i18n"
 import Image from "next/image"
 import Link from "next/link"
+import { logger } from "@/lib/logger"
 
 // Mock wishlist data
 const getWishlistItems = (language: string) => [
@@ -80,7 +81,7 @@ export default function WishlistPage() {
 
   const addToCart = (id: string) => {
     // Add to cart logic here
-    console.log("Added to cart:", id)
+    logger.info('Item added to cart from wishlist', 'UI', { productId: id })
   }
 
   const shareWishlist = () => {

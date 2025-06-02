@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2C3E50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34495E;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="armorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#BDC3C7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#95A5A6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="swordGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ECF0F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#BDC3C7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="400" height="400" fill="url(#bgGrad)"/>
+  
+  <!-- Ground -->
+  <ellipse cx="200" cy="380" rx="150" ry="20" fill="#1A252F" opacity="0.5"/>
+  
+  <!-- Body (armor) -->
+  <ellipse cx="200" cy="250" rx="40" ry="60" fill="url(#armorGrad)" stroke="#7F8C8D" stroke-width="2"/>
+  
+  <!-- Head -->
+  <circle cx="200" cy="160" r="30" fill="#F4D1AE" stroke="#D4AC0D" stroke-width="2"/>
+  
+  <!-- Helmet -->
+  <path d="M170 150 Q200 130 230 150 L225 170 Q200 160 175 170 Z" fill="url(#armorGrad)" stroke="#7F8C8D" stroke-width="2"/>
+  
+  <!-- Eyes -->
+  <circle cx="190" cy="155" r="3" fill="#2C3E50"/>
+  <circle cx="210" cy="155" r="3" fill="#2C3E50"/>
+  
+  <!-- Nose -->
+  <ellipse cx="200" cy="165" rx="2" ry="4" fill="#E8B887"/>
+  
+  <!-- Arms -->
+  <ellipse cx="160" cy="220" rx="15" ry="35" fill="url(#armorGrad)" stroke="#7F8C8D" stroke-width="2" transform="rotate(-20 160 220)"/>
+  <ellipse cx="240" cy="220" rx="15" ry="35" fill="url(#armorGrad)" stroke="#7F8C8D" stroke-width="2" transform="rotate(20 240 220)"/>
+  
+  <!-- Hands -->
+  <circle cx="150" cy="245" r="8" fill="#F4D1AE"/>
+  <circle cx="250" cy="245" r="8" fill="#F4D1AE"/>
+  
+  <!-- Legs -->
+  <ellipse cx="185" cy="330" rx="12" ry="40" fill="url(#armorGrad)" stroke="#7F8C8D" stroke-width="2"/>
+  <ellipse cx="215" cy="330" rx="12" ry="40" fill="url(#armorGrad)" stroke="#7F8C8D" stroke-width="2"/>
+  
+  <!-- Feet -->
+  <ellipse cx="185" cy="375" rx="15" ry="8" fill="#8B4513"/>
+  <ellipse cx="215" cy="375" rx="15" ry="8" fill="#8B4513"/>
+  
+  <!-- Sword -->
+  <rect x="245" y="180" width="6" height="80" fill="url(#swordGrad)" stroke="#85929E" stroke-width="1"/>
+  <rect x="240" y="175" width="16" height="10" fill="#8B4513" stroke="#654321" stroke-width="1"/>
+  <polygon points="245,180 248,170 252,180" fill="url(#swordGrad)" stroke="#85929E" stroke-width="1"/>
+  
+  <!-- Shield -->
+  <ellipse cx="145" cy="230" rx="20" ry="25" fill="#E74C3C" stroke="#C0392B" stroke-width="2"/>
+  <rect x="140" y="220" width="10" height="20" fill="#F39C12"/>
+  <rect x="135" y="225" width="20" height="10" fill="#F39C12"/>
+  
+  <!-- Cape -->
+  <path d="M180 200 Q150 220 160 280 Q180 270 200 280 Q220 270 240 280 Q250 220 220 200" fill="#8E44AD" stroke="#7D3C98" stroke-width="2" opacity="0.8"/>
+  
+  <!-- Armor details -->
+  <rect x="190" y="230" width="20" height="5" fill="#F39C12"/>
+  <rect x="190" y="250" width="20" height="5" fill="#F39C12"/>
+  <rect x="190" y="270" width="20" height="5" fill="#F39C12"/>
+</svg>

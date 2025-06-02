@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Grid, List, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,157 +17,7 @@ import { formatCurrency } from "@/lib/i18n"
 import Image from "next/image"
 import Link from "next/link"
 
-// Mock data for products
-const getMockProducts = (language: string) => [
-  {
-    id: "1",
-    name: language === "en" ? "Modern Villa 3D" : language === "zh" ? "现代别墅3D" : "Villa Hiện Đại 3D",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Residential" : language === "zh" ? "住宅" : "Nhà ở",
-    price: 299000,
-    originalPrice: 399000,
-    rating: 4.8,
-    reviews: 124,
-    image: "/placeholder.svg?height=300&width=300",
-    tags:
-      language === "en"
-        ? ["villa", "modern", "architecture"]
-        : language === "zh"
-          ? ["别墅", "现代", "建筑"]
-          : ["villa", "hiện đại", "kiến trúc"],
-    format: "FBX",
-    polygons: 15000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: true,
-    discount: 25,
-  },
-  {
-    id: "2",
-    name: language === "en" ? "Ferrari Sports Car" : language === "zh" ? "法拉利跑车" : "Xe Thể Thao Ferrari",
-    category: language === "en" ? "Vehicles" : language === "zh" ? "车辆" : "Xe cộ",
-    subcategory: language === "en" ? "Sports Car" : language === "zh" ? "跑车" : "Xe thể thao",
-    price: 450000,
-    rating: 4.9,
-    reviews: 89,
-    image: "/placeholder.svg?height=300&width=300",
-    tags:
-      language === "en"
-        ? ["ferrari", "sports car", "luxury"]
-        : language === "zh"
-          ? ["法拉利", "跑车", "豪华"]
-          : ["ferrari", "xe thể thao", "luxury"],
-    format: "OBJ",
-    polygons: 25000,
-    textures: true,
-    rigged: true,
-    animated: true,
-    featured: true,
-  },
-  // Add more products...
-  {
-    id: "3",
-    name: language === "en" ? "Anime Girl Character" : language === "zh" ? "动漫女孩角色" : "Nhân Vật Anime Girl",
-    category: language === "en" ? "Characters" : language === "zh" ? "角色" : "Nhân vật",
-    subcategory: language === "en" ? "Anime" : language === "zh" ? "动漫" : "Anime",
-    price: 199000,
-    rating: 4.7,
-    reviews: 256,
-    image: "/placeholder.svg?height=300&width=300",
-    tags:
-      language === "en"
-        ? ["anime", "girl", "character"]
-        : language === "zh"
-          ? ["动漫", "女孩", "角色"]
-          : ["anime", "girl", "nhân vật"],
-    format: "FBX",
-    polygons: 8000,
-    textures: true,
-    rigged: true,
-    animated: true,
-    featured: false,
-  },
-  {
-    id: "4",
-    name: language === "en" ? "Office Building" : language === "zh" ? "办公楼" : "Tòa Nhà Văn Phòng",
-    category: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    subcategory: language === "en" ? "Commercial" : language === "zh" ? "商业" : "Thương mại",
-    price: 550000,
-    rating: 4.5,
-    reviews: 43,
-    image: "/placeholder.svg?height=300&width=300",
-    tags:
-      language === "en"
-        ? ["office", "building", "commercial"]
-        : language === "zh"
-          ? ["办公室", "建筑", "商业"]
-          : ["văn phòng", "tòa nhà", "thương mại"],
-    format: "MAX",
-    polygons: 45000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: false,
-  },
-  {
-    id: "5",
-    name: language === "en" ? "Fighter Jet" : language === "zh" ? "战斗机" : "Máy Bay Chiến Đấu",
-    category: language === "en" ? "Vehicles" : language === "zh" ? "车辆" : "Xe cộ",
-    subcategory: language === "en" ? "Aircraft" : language === "zh" ? "飞机" : "Máy bay",
-    price: 399000,
-    rating: 4.8,
-    reviews: 91,
-    image: "/placeholder.svg?height=300&width=300",
-    tags:
-      language === "en"
-        ? ["fighter", "jet", "military"]
-        : language === "zh"
-          ? ["战斗机", "喷气式", "军事"]
-          : ["máy bay", "chiến đấu", "quân sự"],
-    format: "FBX",
-    polygons: 28000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: true,
-  },
-  {
-    id: "6",
-    name: language === "en" ? "Medieval Sword" : language === "zh" ? "中世纪剑" : "Kiếm Trung Cổ",
-    category: language === "en" ? "Weapons" : language === "zh" ? "武器" : "Vũ khí",
-    subcategory: language === "en" ? "Melee" : language === "zh" ? "近战" : "Cận chiến",
-    price: 89000,
-    rating: 4.6,
-    reviews: 178,
-    image: "/placeholder.svg?height=300&width=300",
-    tags:
-      language === "en"
-        ? ["sword", "medieval", "weapon"]
-        : language === "zh"
-          ? ["剑", "中世纪", "武器"]
-          : ["kiếm", "trung cổ", "vũ khí"],
-    format: "BLEND",
-    polygons: 5000,
-    textures: true,
-    rigged: false,
-    animated: false,
-    featured: false,
-  },
-]
-
-const getCategories = (language: string) => [
-  {
-    id: "architecture",
-    name: language === "en" ? "Architecture" : language === "zh" ? "建筑" : "Kiến trúc",
-    count: 156,
-  },
-  { id: "vehicles", name: language === "en" ? "Vehicles" : language === "zh" ? "车辆" : "Xe cộ", count: 89 },
-  { id: "characters", name: language === "en" ? "Characters" : language === "zh" ? "角色" : "Nhân vật", count: 234 },
-  { id: "creatures", name: language === "en" ? "Creatures" : language === "zh" ? "生物" : "Sinh vật", count: 67 },
-  { id: "furniture", name: language === "en" ? "Furniture" : language === "zh" ? "家具" : "Nội thất", count: 123 },
-  { id: "weapons", name: language === "en" ? "Weapons" : language === "zh" ? "武器" : "Vũ khí", count: 45 },
-]
+import { Product, Category, ProductsResponse } from "@/types/api"
 
 const formats = ["FBX", "OBJ", "BLEND", "MAX", "3DS", "DAE"]
 
@@ -177,16 +27,100 @@ export default function ProductsPage() {
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState([0, 1000000])
+  const [priceRange, setPriceRange] = useState([0, 1000])
   const [selectedFormats, setSelectedFormats] = useState<string[]>([])
   const [minRating, setMinRating] = useState(0)
   const [hasTextures, setHasTextures] = useState(false)
   const [isRigged, setIsRigged] = useState(false)
   const [isAnimated, setIsAnimated] = useState(false)
   const [sortBy, setSortBy] = useState("featured")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    pages: 0
+  })
+  const [error, setError] = useState<string | null>(null)
+useEffect(() => {
+  const controller = new AbortController()
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories', { signal: controller.signal })
+      if (response.ok) {
+        const data = await response.json()
+        setCategories(data.categories || [])
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching categories:', error)
+      }
+    }
+  }
+  fetchCategories()
+  return () => controller.abort()
+}, [])
 
-  const mockProducts = getMockProducts(language)
-  const categories = getCategories(language)
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: '12'
+        })
+
+        if (selectedCategories.length > 0) {
+          params.append('category', selectedCategories[0])
+        }
+
+        if (sortBy === 'featured') {
+          params.append('featured', 'true')
+        } else if (sortBy === 'newest') {
+          params.append('sort', 'createdAt')
+          params.append('order', 'desc')
+        } else if (sortBy === 'price-low') {
+          params.append('sort', 'price')
+          params.append('order', 'asc')
+        } else if (sortBy === 'price-high') {
+          params.append('sort', 'price')
+          params.append('order', 'desc')
+        } else if (sortBy === 'rating') {
+          params.append('sort', 'rating')
+          params.append('order', 'desc')
+        } else if (sortBy === 'popular') {
+          params.append('sort', 'downloads')
+          params.append('order', 'desc')
+        }
+
+        // Add search parameter from URL
+        const searchQuery = searchParams.get('search')
+        if (searchQuery) {
+          params.append('search', searchQuery)
+        }
+
+        const response = await fetch(`/api/products?${params}`)
+        if (response.ok) {
+          const data: ProductsResponse = await response.json()
+          setProducts(data.products)
+          setPagination(data.pagination)
+        } else {
+          console.error('Failed to fetch products:', response.statusText)
+          setProducts([])
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error)
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [currentPage, selectedCategories, sortBy, searchParams])
 
   const sortOptions = [
     { value: "featured", label: language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật" },
@@ -197,70 +131,23 @@ export default function ProductsPage() {
     { value: "popular", label: t.sort.popular },
   ]
 
-  // Filter and sort products
+  // Filter products (client-side filtering for additional filters)
   const filteredProducts = useMemo(() => {
-    let filtered = mockProducts.filter((product) => {
-      // Category filter
-      if (selectedCategories.length > 0) {
-        if (!selectedCategories.includes(product.category)) return false
-      }
-
+    let filtered = products.filter((product) => {
       // Price filter
       if (product.price < priceRange[0] || product.price > priceRange[1]) return false
-
-      // Format filter
-      if (selectedFormats.length > 0) {
-        if (!selectedFormats.includes(product.format)) return false
-      }
 
       // Rating filter
       if (product.rating < minRating) return false
 
-      // Feature filters
-      if (hasTextures && !product.textures) return false
-      if (isRigged && !product.rigged) return false
-      if (isAnimated && !product.animated) return false
-
       return true
     })
 
-    // Sort products
-    switch (sortBy) {
-      case "featured":
-        filtered = filtered.sort((a, b) => {
-          if (a.featured && !b.featured) return -1
-          if (!a.featured && b.featured) return 1
-          return b.rating - a.rating
-        })
-        break
-      case "newest":
-        filtered = [...filtered].reverse()
-        break
-      case "price-low":
-        filtered = filtered.sort((a, b) => a.price - b.price)
-        break
-      case "price-high":
-        filtered = filtered.sort((a, b) => b.price - a.price)
-        break
-      case "rating":
-        filtered = filtered.sort((a, b) => b.rating - a.rating)
-        break
-      case "popular":
-        filtered = filtered.sort((a, b) => b.reviews - a.reviews)
-        break
-    }
-
     return filtered
   }, [
-    selectedCategories,
+    products,
     priceRange,
-    selectedFormats,
     minRating,
-    hasTextures,
-    isRigged,
-    isAnimated,
-    sortBy,
-    mockProducts,
   ])
 
   const clearFilters = () => {
@@ -304,7 +191,7 @@ export default function ProductsPage() {
               <Label htmlFor={category.id} className="flex-1 text-sm">
                 {category.name}
               </Label>
-              <span className="text-xs text-[#51946b]">({category.count})</span>
+              <span className="text-xs text-[#51946b]">({category._count._all})</span>
             </div>
           ))}
         </div>
@@ -517,7 +404,23 @@ export default function ProductsPage() {
             </div>
 
             {/* Products Grid/List */}
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Card key={i} className="border-[#d1e6d9]">
+                    <CardContent className="p-4">
+                      <div className="animate-pulse">
+                        <div className="aspect-square bg-gray-200 rounded-lg mb-3"></div>
+                        <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded mb-2 w-2/3"></div>
+                        <div className="h-3 bg-gray-200 rounded mb-3 w-1/2"></div>
+                        <div className="h-8 bg-gray-200 rounded"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div
                 className={
                   viewMode === "grid"
@@ -531,14 +434,11 @@ export default function ProductsPage() {
                       <div className={viewMode === "grid" ? "" : "w-32 flex-shrink-0"}>
                         <div className="relative aspect-square mb-3 overflow-hidden rounded-lg">
                           <Image
-                            src={product.image || "/placeholder.svg"}
+                            src={product.imageUrl || "/placeholder.svg"}
                             alt={product.name}
                             fill
                             className="object-cover hover:scale-105 transition-transform"
                           />
-                          {product.discount && (
-                            <Badge className="absolute top-2 left-2 bg-red-500 text-white">-{product.discount}%</Badge>
-                          )}
                           {product.featured && (
                             <Badge className="absolute top-2 right-2 bg-[#39e079] text-[#0e1a13]">
                               {language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật"}
@@ -548,33 +448,30 @@ export default function ProductsPage() {
                       </div>
 
                       <div className="flex-1">
-                        <Link href={`/products/${product.id}`}>
+                        <Link href={`/products/${product.slug}`}>
                           <h3 className="font-semibold text-[#0e1a13] mb-2 hover:text-[#39e079] transition-colors">
                             {product.name}
                           </h3>
                         </Link>
 
-                        <p className="text-sm text-[#51946b] mb-2">{product.category}</p>
+                        <p className="text-sm text-[#51946b] mb-2">{product.category.name}</p>
 
                         <div className="flex items-center gap-2 mb-2">
                           <div className="flex items-center">
                             <span className="text-yellow-400">★</span>
                             <span className="text-sm text-[#51946b] ml-1">
-                              {product.rating} ({product.reviews})
+                              {product.rating} ({product.downloads})
                             </span>
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {product.format}
-                          </Badge>
+                          {product.tags && product.tags.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {product.tags[0]}
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 mb-3">
                           <span className="font-bold text-[#0e1a13]">{formatCurrency(product.price, language)}</span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-[#51946b] line-through">
-                              {formatCurrency(product.originalPrice, language)}
-                            </span>
-                          )}
                         </div>
 
                         <div className="flex flex-wrap gap-1 mb-3">
@@ -618,6 +515,63 @@ export default function ProductsPage() {
                 <Button onClick={clearFilters} className="bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
                   {t.filters.clear_filters}
                 </Button>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && filteredProducts.length > 0 && pagination.pages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="border-[#d1e6d9]"
+                >
+                  {language === "en" ? "Previous" : language === "zh" ? "上一页" : "Trước"}
+                </Button>
+                
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                    const pageNum = i + 1
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={
+                          currentPage === pageNum
+                            ? "bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90"
+                            : "border-[#d1e6d9]"
+                        }
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
+                  disabled={currentPage === pagination.pages}
+                  className="border-[#d1e6d9]"
+                >
+                  {language === "en" ? "Next" : language === "zh" ? "下一页" : "Tiếp"}
+                </Button>
+              </div>
+            )}
+
+            {/* Results info */}
+            {!loading && (
+              <div className="text-center text-sm text-[#51946b] mt-4">
+                {language === "en"
+                  ? `Showing ${filteredProducts.length} of ${pagination.total} products`
+                  : language === "zh"
+                    ? `显示 ${filteredProducts.length} / ${pagination.total} 个产品`
+                    : `Hiển thị ${filteredProducts.length} / ${pagination.total} sản phẩm`}
               </div>
             )}
           </div>

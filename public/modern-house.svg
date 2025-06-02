@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E0F6FF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B4513;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A0522D;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="wallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5DEB3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#DEB887;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Sky background -->
+  <rect width="400" height="400" fill="url(#skyGrad)"/>
+  <!-- Ground -->
+  <rect x="0" y="320" width="400" height="80" fill="#90EE90"/>
+  <!-- House base -->
+  <rect x="100" y="200" width="200" height="120" fill="url(#wallGrad)" stroke="#8B7355" stroke-width="2"/>
+  <!-- Roof -->
+  <polygon points="80,200 200,120 320,200" fill="url(#roofGrad)" stroke="#654321" stroke-width="2"/>
+  <!-- Door -->
+  <rect x="160" y="250" width="40" height="70" fill="#8B4513" stroke="#654321" stroke-width="1"/>
+  <circle cx="190" cy="285" r="2" fill="#FFD700"/>
+  <!-- Windows -->
+  <rect x="120" y="230" width="25" height="25" fill="#87CEEB" stroke="#4682B4" stroke-width="1"/>
+  <rect x="255" y="230" width="25" height="25" fill="#87CEEB" stroke="#4682B4" stroke-width="1"/>
+  <!-- Window frames -->
+  <line x1="132.5" y1="230" x2="132.5" y2="255" stroke="#4682B4" stroke-width="1"/>
+  <line x1="120" y1="242.5" x2="145" y2="242.5" stroke="#4682B4" stroke-width="1"/>
+  <line x1="267.5" y1="230" x2="267.5" y2="255" stroke="#4682B4" stroke-width="1"/>
+  <line x1="255" y1="242.5" x2="280" y2="242.5" stroke="#4682B4" stroke-width="1"/>
+  <!-- Chimney -->
+  <rect x="250" y="140" width="20" height="40" fill="#8B4513" stroke="#654321" stroke-width="1"/>
+  <!-- Trees -->
+  <circle cx="50" cy="280" r="25" fill="#228B22"/>
+  <rect x="47" y="280" width="6" height="40" fill="#8B4513"/>
+  <circle cx="350" cy="290" r="20" fill="#32CD32"/>
+  <rect x="347" y="290" width="6" height="30" fill="#8B4513"/>
+  <!-- Clouds -->
+  <ellipse cx="80" cy="80" rx="25" ry="15" fill="white" opacity="0.8"/>
+  <ellipse cx="320" cy="60" rx="30" ry="18" fill="white" opacity="0.8"/>
+  <!-- Sun -->
+  <circle cx="350" cy="50" r="20" fill="#FFD700" opacity="0.9"/>
+</svg>

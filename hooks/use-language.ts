@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { type Language, type Translation, getTranslation } from "@/lib/i18n"
 
 interface LanguageContextType {
@@ -43,7 +43,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : lang === "en" ? "en-US" : "vi-VN"
   }
 
-  return <LanguageContext.Provider value={{ language, setLanguage, t }}>{children}</LanguageContext.Provider>
+  return React.createElement(
+    LanguageContext.Provider,
+    {
+      value: {
+        language,
+        setLanguage,
+        t
+      }
+    },
+    children
+  )
 }
 
 export function useLanguage() {

@@ -1,0 +1,10 @@
+ignoredBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
+  - protobufjs
+  - sharp
+  - unrs-resolver
+onlyBuiltDependencies:
+  - esbuild
+  - puppeteer

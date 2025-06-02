@@ -11,6 +11,7 @@ import { useNotifications } from "@/hooks/use-notifications"
 import { useLanguage } from "@/hooks/use-language"
 import NotificationItem from "./notification-item"
 import ConnectionStatus from "./connection-status"
+import { logger } from "@/lib/logger"
 
 export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false)
@@ -21,7 +22,7 @@ export default function NotificationCenter() {
   const handleRequestPermission = async () => {
     const granted = await requestNotificationPermission()
     if (granted) {
-      console.log("Notification permission granted")
+      logger.info('Notification permission granted', 'UI')
     }
   }
 
@@ -60,7 +61,7 @@ export default function NotificationCenter() {
             </div>
           )}
 
-          {!isConnected && "Notification" in window && Notification.permission === "default" && (
+          {!isConnected && typeof window !== "undefined" && "Notification" in window && Notification.permission === "default" && (
             <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-800 mb-2">
                 {t.enableNotifications || "Enable browser notifications to stay updated"}

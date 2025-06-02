@@ -1,0 +1,21 @@
+# .coderabbit.yaml
+reviews:
+  auto_review: true
+  auto_apply_suggestions: true
+  request_changes_workflow: false
+  
+rules:
+  - path: "**/*.ts"
+    instructions: |
+      - Apply TypeScript best practices
+      - Auto-fix import statements
+      - Apply consistent formatting
+  
+  - path: "**/*.tsx"
+    instructions: |
+      - Apply React best practices
+      - Auto-fix component structure
+      - Apply accessibility improvements
+
+chat:
+  auto_reply: true

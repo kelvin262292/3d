@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Search, X, Grid, List, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ import { useLanguage } from "@/hooks/use-language"
 import { formatCurrency } from "@/lib/i18n"
 import Image from "next/image"
 import Link from "next/link"
+import { logger } from "@/lib/logger"
 
 // Mock data for search - now with multi-language support
 const getMockProducts = (language: string) => [
@@ -167,8 +168,56 @@ export default function SearchPage() {
   const [isAnimated, setIsAnimated] = useState(false)
   const [sortBy, setSortBy] = useState("relevance")
 
+  const [products, setProducts] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [totalProducts, setTotalProducts] = useState(0)
+
+  // Fetch products and categories from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        
+        // Fetch products
+        const productsResponse = await fetch('/api/products?limit=50')
+        if (!productsResponse.ok) {
+          throw new Error('Failed to fetch products')
+        }
+        const productsData = await productsResponse.json()
+        setProducts(productsData.products || [])
+        setTotalProducts(productsData.pagination?.total || 0)
+        
+        // Fetch categories
+        const categoriesResponse = await fetch('/api/categories')
+        if (!categoriesResponse.ok) {
+          throw new Error('Failed to fetch categories')
+        }
+        const categoriesData = await categoriesResponse.json()
+        setCategories(categoriesData || [])
+        
+        logger.info('Search data loaded successfully', 'UI', { 
+          productsCount: productsData.products?.length || 0,
+          categoriesCount: categoriesData?.length || 0
+        })
+      } catch (error) {
+        logger.error('Failed to fetch search data', 'UI', { error })
+        setError('Failed to load data')
+        // Fallback to mock data
+        setProducts(getMockProducts(language))
+        setCategories(getCategories(language))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [language])
+
+  // Keep mock data as fallback
   const mockProducts = getMockProducts(language)
-  const categories = getCategories(language)
+  const mockCategories = getCategories(language)
 
   const sortOptions = [
     { value: "relevance", label: t.sort.relevance },
@@ -182,38 +231,56 @@ export default function SearchPage() {
   // Generate search suggestions
   const allTags = useMemo(() => {
     const tags = new Set<string>()
-    mockProducts.forEach((product) => {
-      product.tags.forEach((tag) => tags.add(tag))
+    const dataToUse = products.length > 0 ? products : mockProducts
+    dataToUse.forEach((product) => {
+      // Handle both API and mock data structures
+      if (product.tags) {
+        if (Array.isArray(product.tags)) {
+          product.tags.forEach((tag) => tags.add(tag))
+        } else if (typeof product.tags === 'string') {
+          product.tags.split(',').forEach((tag) => tags.add(tag.trim()))
+        }
+      }
       tags.add(product.name.toLowerCase())
-      tags.add(product.category.toLowerCase())
-      tags.add(product.subcategory.toLowerCase())
+      const categoryName = product.category?.name || product.category
+      if (categoryName) {
+        tags.add(categoryName.toLowerCase())
+      }
+      if (product.subcategory) {
+        tags.add(product.subcategory.toLowerCase())
+      }
     })
     return Array.from(tags)
-  }, [mockProducts])
+  }, [products, mockProducts])
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let filtered = mockProducts.filter((product) => {
+    const dataToUse = products.length > 0 ? products : mockProducts
+    let filtered = dataToUse.filter((product) => {
       // Search query filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
         const matchesName = product.name.toLowerCase().includes(query)
         const matchesTags = product.tags.some((tag) => tag.toLowerCase().includes(query))
-        const matchesCategory = product.category.toLowerCase().includes(query)
+        const categoryName = product.category?.name || product.category
+        const matchesCategory = categoryName?.toLowerCase().includes(query)
         if (!matchesName && !matchesTags && !matchesCategory) return false
       }
 
       // Category filter
       if (selectedCategories.length > 0) {
-        if (!selectedCategories.includes(product.category)) return false
+        const categoryName = product.category?.name || product.category
+        if (!selectedCategories.includes(categoryName)) return false
       }
 
       // Price filter
-      if (product.price < priceRange[0] || product.price > priceRange[1]) return false
+      const productPrice = Number(product.price)
+      if (productPrice < priceRange[0] || productPrice > priceRange[1]) return false
 
       // Format filter
       if (selectedFormats.length > 0) {
-        if (!selectedFormats.includes(product.format)) return false
+        const productFormat = product.format || 'FBX' // Default format
+        if (!selectedFormats.includes(productFormat)) return false
       }
 
       // Rating filter
@@ -639,7 +706,43 @@ export default function SearchPage() {
             )}
 
             {/* Products Grid/List */}
-            {filteredProducts.length > 0 ? (
+            {isLoading ? (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                    : "space-y-4"
+                }
+              >
+                {[...Array(8)].map((_, index) => (
+                  <Card key={index} className="border-[#d1e6d9] animate-pulse">
+                    <CardContent className={viewMode === "grid" ? "p-4" : "p-4 flex gap-4"}>
+                      <div className={viewMode === "grid" ? "" : "w-32 flex-shrink-0"}>
+                        <div className="bg-gray-200 aspect-square mb-3 rounded-lg"></div>
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <div className="bg-gray-200 h-6 rounded w-2/3"></div>
+                        <div className="bg-gray-200 h-4 rounded w-1/2"></div>
+                        <div className="bg-gray-200 h-6 rounded w-1/3"></div>
+                        <div className="flex gap-2">
+                          <div className="bg-gray-200 h-4 rounded w-12"></div>
+                          <div className="bg-gray-200 h-4 rounded w-12"></div>
+                        </div>
+                        <div className="bg-gray-200 h-8 rounded"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">⚠️</div>
+                <h3 className="text-xl font-semibold text-[#0e1a13] mb-2">{error}</h3>
+                <Button onClick={() => window.location.reload()} className="bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
+                  {language === "en" ? "Retry" : language === "zh" ? "重试" : "Thử lại"}
+                </Button>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div
                 className={
                   viewMode === "grid"
@@ -653,7 +756,7 @@ export default function SearchPage() {
                       <div className={viewMode === "grid" ? "" : "w-32 flex-shrink-0"}>
                         <div className="relative aspect-square mb-3 overflow-hidden rounded-lg">
                           <Image
-                            src={product.image || "/placeholder.svg"}
+                            src={product.imageUrl || product.images?.[0] || product.image || "/placeholder.svg"}
                             alt={product.name}
                             fill
                             className="object-cover hover:scale-105 transition-transform"
@@ -663,14 +766,14 @@ export default function SearchPage() {
                           )}
                           {product.featured && (
                             <Badge className="absolute top-2 right-2 bg-[#39e079] text-[#0e1a13]">
-                              {t.product.featured}
+                              {language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật"}
                             </Badge>
                           )}
                         </div>
                       </div>
 
                       <div className="flex-1">
-                        <Link href={`/products/${product.id}`}>
+                        <Link href={`/products/${product.slug || product.id}`}>
                           <h3 className="font-semibold text-[#0e1a13] mb-2 hover:text-[#39e079] transition-colors">
                             {product.name}
                           </h3>
@@ -680,26 +783,29 @@ export default function SearchPage() {
                           <div className="flex items-center">
                             <span className="text-yellow-400">★</span>
                             <span className="text-sm text-[#51946b] ml-1">
-                              {product.rating} ({product.reviews})
+                              {product.rating} ({product.downloads || product.reviews || 0})
                             </span>
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {product.format}
+                            {product.format || 'FBX'}
                           </Badge>
                         </div>
 
                         <div className="flex items-center gap-2 mb-3">
-                          <span className="font-bold text-[#0e1a13]">{formatCurrency(product.price, language)}</span>
+                          <span className="font-bold text-[#0e1a13]">{formatCurrency(Number(product.price), language)}</span>
                           {product.originalPrice && (
                             <span className="text-sm text-[#51946b] line-through">
-                              {formatCurrency(product.originalPrice, language)}
+                              {formatCurrency(Number(product.originalPrice), language)}
                             </span>
                           )}
                         </div>
 
                         <div className="flex flex-wrap gap-1 mb-3">
-                          {product.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs bg-[#e8f2ec] text-[#51946b]">
+                          {(product.tags ? 
+                            (Array.isArray(product.tags) ? product.tags : product.tags.split(',').map(t => t.trim()))
+                            : []
+                          ).slice(0, 3).map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs bg-[#e8f2ec] text-[#51946b]">
                               {tag}
                             </Badge>
                           ))}
@@ -707,7 +813,7 @@ export default function SearchPage() {
 
                         <div className="flex gap-2">
                           <Button size="sm" className="flex-1 bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
-                            {t.product.add_to_cart}
+                            {language === "en" ? "Add to Cart" : language === "zh" ? "加入购物车" : "Thêm vào giỏ"}
                           </Button>
                           <Button variant="outline" size="sm" className="border-[#d1e6d9]">
                             ♡
@@ -721,10 +827,14 @@ export default function SearchPage() {
             ) : (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold text-[#0e1a13] mb-2">{t.search.no_results}</h3>
-                <p className="text-[#51946b] mb-4">{t.search.no_results_desc}</p>
+                <h3 className="text-xl font-semibold text-[#0e1a13] mb-2">
+                  {language === "en" ? "No results found" : language === "zh" ? "未找到结果" : "Không tìm thấy kết quả"}
+                </h3>
+                <p className="text-[#51946b] mb-4">
+                  {language === "en" ? "Try adjusting your search or filters" : language === "zh" ? "尝试调整搜索或筛选条件" : "Thử điều chỉnh tìm kiếm hoặc bộ lọc"}
+                </p>
                 <Button onClick={clearFilters} className="bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
-                  {t.filters.clear_filters}
+                  {language === "en" ? "Clear Filters" : language === "zh" ? "清除筛选" : "Xóa bộ lọc"}
                 </Button>
               </div>
             )}

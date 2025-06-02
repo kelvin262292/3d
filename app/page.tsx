@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Star, Zap, Shield, Headphones } from "lucide-react"
@@ -11,6 +11,40 @@ import { useLanguage } from "@/hooks/use-language"
 import { formatCurrency } from "@/lib/i18n"
 import { SearchAutocomplete } from "@/components/search-autocomplete"
 import { useRouter } from "next/navigation"
+import { logger } from "@/lib/logger"
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Navigation, Pagination, Autoplay } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/navigation'
+import 'swiper/css/pagination'
+
+// Types for API response
+interface Product {
+  id: string
+  name: string
+  description?: string
+  price: number
+  slug: string
+  images: string[]
+  imageUrl?: string
+  rating: number
+  downloads: number
+  featured: boolean
+  category: {
+    name: string
+    slug: string
+  }
+}
+
+interface ProductsResponse {
+  products: Product[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    pages: number
+  }
+}
 
 // Mock data for homepage
 const getFeaturedProducts = (language: string) => [
@@ -91,13 +125,116 @@ const getCategories = (language: string) => [
   },
 ]
 
+// Banner/Hero slides interface
+interface Banner {
+  id: string
+  title: string
+  subtitle?: string
+  image: string
+  link?: string
+  isActive: boolean
+  order: number
+}
+
 export default function HomePage() {
   const { language, t } = useLanguage()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [banners, setBanners] = useState<Banner[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const featuredProducts = getFeaturedProducts(language)
-  const categories = getCategories(language)
+  // Fetch banners from API
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const response = await fetch('/api/banners?active=true')
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success) {
+            setBanners(result.data)
+            logger.info('Banners loaded successfully', 'UI', { count: result.data.length })
+          }
+        }
+      } catch (error) {
+        logger.error('Failed to fetch banners', 'UI', { error })
+        // Fallback to default banner if API fails
+        setBanners([{
+          id: 'default',
+          title: 'Premium 3D Models',
+          subtitle: 'For Creators',
+          image: '/hero-1.jpg',
+          isActive: true,
+          order: 0
+        }])
+      }
+    }
+
+    fetchBanners()
+  }, [])
+
+  // Fetch featured products from API
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/products/featured?limit=4')
+        if (!response.ok) {
+          throw new Error('Failed to fetch featured products')
+        }
+        const data: ProductsResponse = await response.json()
+        setFeaturedProducts(data.products)
+        logger.info('Featured products loaded successfully', 'UI', { count: data.products.length })
+      } catch (error) {
+        logger.error('Failed to fetch featured products', 'UI', { error })
+        setError('Failed to load featured products')
+        // Fallback to mock data
+        const mockData = getFeaturedProducts(language)
+        setFeaturedProducts(mockData.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: `High-quality 3D model - ${item.category}`,
+          price: item.price / 1000, // Convert from VND to USD
+          slug: item.name.toLowerCase().replace(/\s+/g, '-'),
+          images: [item.image],
+          imageUrl: item.image,
+          rating: item.rating,
+          downloads: item.reviews,
+          featured: item.featured,
+          category: {
+            name: item.category,
+            slug: item.category.toLowerCase()
+          }
+        })))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories')
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories')
+        }
+        const data = await response.json()
+        setCategories(data.categories || [])
+        logger.info('Categories loaded successfully', 'UI', { count: data.categories?.length || 0 })
+      } catch (error) {
+        logger.error('Failed to fetch categories', 'UI', { error })
+        // Fallback to mock categories
+        setCategories(getCategories(language))
+      }
+    }
+
+    fetchFeaturedProducts()
+    fetchCategories()
+  }, [language])
+
+  // Keep mock categories as fallback
+  const mockCategories = getCategories(language)
 
   const handleSearch = (query: string) => {
     router.push(`/search?q=${encodeURIComponent(query)}`)
@@ -141,20 +278,57 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-[#e8f2ec] to-[#f8fbfa] py-20">
         <div className="max-w-7xl mx-auto px-4">
+          <Swiper
+            modules={[Navigation, Pagination, Autoplay]}
+            spaceBetween={30}
+            slidesPerView={1}
+            navigation
+            pagination={{ clickable: true }}
+            autoplay={{ delay: 5000 }}
+            className="mb-12"
+          >
+            {banners.map((banner) => (
+              <SwiperSlide key={banner.id}>
+                <div className="relative h-[400px] rounded-xl overflow-hidden">
+                  <Image
+                    src={banner.image}
+                    alt={banner.title}
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center text-center">
+                    <div>
+                      <h2 className="text-4xl md:text-6xl font-bold text-white mb-4">{banner.title}</h2>
+                      {banner.subtitle && (
+                        <p className="text-xl text-white/90">{banner.subtitle}</p>
+                      )}
+                      {banner.link && (
+                        <div className="mt-6">
+                          <Button asChild size="lg" className="bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
+                            <Link href={banner.link}>
+                              {language === "en" ? "Learn More" : language === "zh" ? "了解更多" : "Tìm hiểu thêm"}
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-6xl font-bold text-[#0e1a13] mb-6">
-              {language === "en" ? "Premium 3D Models" : language === "zh" ? "优质3D模型" : "Mô Hình 3D Cao Cấp"}
-              <br />
-              <span className="text-[#39e079]">
-                {language === "en" ? "For Creators" : language === "zh" ? "为创作者" : "Cho Nhà Sáng Tạo"}
-              </span>
+              {language === "en" ? "3D Model Store" : language === "zh" ? "3D模型商店" : "Cửa Hàng Mô Hình 3D"}
             </h1>
             <p className="text-xl text-[#51946b] mb-8 max-w-2xl mx-auto">
               {language === "en"
-                ? "Discover thousands of high-quality 3D models for your projects. From architecture to characters, find everything you need."
+                ? "Your one-stop destination for high-quality 3D models. Browse our extensive collection of ready-to-use assets."
                 : language === "zh"
-                  ? "发现数千个高质量3D模型，满足您的项目需求。从建筑到角色，应有尽有。"
-                  : "Khám phá hàng nghìn mô hình 3D chất lượng cao cho dự án của bạn. Từ kiến trúc đến nhân vật, tìm thấy mọi thứ bạn cần."}
+                  ? "您的一站式高质量3D模型目的地。浏览我们丰富的即用型资源集合。"
+                  : "Điểm đến một cửa cho các mô hình 3D chất lượng cao. Khám phá bộ sưu tập tài nguyên sẵn sàng sử dụng của chúng tôi."}
             </p>
 
             {/* Hero Search */}
@@ -213,58 +387,87 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <Card key={product.id} className="border-[#d1e6d9] hover:shadow-lg transition-shadow group">
-                <CardContent className="p-4">
-                  <div className="relative aspect-square mb-4 overflow-hidden rounded-lg">
-                    <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform"
-                    />
-                    {product.discount && (
-                      <Badge className="absolute top-2 left-2 bg-red-500 text-white">-{product.discount}%</Badge>
-                    )}
-                    <Badge className="absolute top-2 right-2 bg-[#39e079] text-[#0e1a13]">
-                      {language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật"}
-                    </Badge>
-                  </div>
-
-                  <Link href={`/products/${product.id}`}>
-                    <h3 className="font-semibold text-[#0e1a13] mb-2 hover:text-[#39e079] transition-colors">
-                      {product.name}
-                    </h3>
-                  </Link>
-
-                  <p className="text-sm text-[#51946b] mb-2">{product.category}</p>
-
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm text-[#51946b] ml-1">
-                        {product.rating} ({product.reviews})
-                      </span>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, index) => (
+                <Card key={index} className="animate-pulse border-[#d1e6d9]">
+                  <CardContent className="p-4">
+                    <div className="bg-gray-200 aspect-square mb-4 rounded-lg"></div>
+                    <div className="space-y-3">
+                      <div className="bg-gray-200 h-4 rounded w-1/3"></div>
+                      <div className="bg-gray-200 h-6 rounded w-2/3"></div>
+                      <div className="bg-gray-200 h-4 rounded w-1/2"></div>
+                      <div className="flex justify-between items-center">
+                        <div className="bg-gray-200 h-6 rounded w-1/3"></div>
+                        <div className="bg-gray-200 h-8 rounded w-16"></div>
+                      </div>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90"
+              >
+                {language === "en" ? "Retry" : language === "zh" ? "重试" : "Thử lại"}
+              </Button>
+            </div>
+          ) : featuredProducts.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-[#51946b]">
+                {language === "en" ? "No featured products available" : language === "zh" ? "暂无精选产品" : "Không có sản phẩm nổi bật"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <Card key={product.id} className="border-[#d1e6d9] hover:shadow-lg transition-shadow group">
+                  <CardContent className="p-4">
+                    <div className="relative aspect-square mb-4 overflow-hidden rounded-lg">
+                      <Image
+                        src={product.imageUrl || product.images[0] || "/placeholder.svg"}
+                        alt={product.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <Badge className="absolute top-2 right-2 bg-[#39e079] text-[#0e1a13]">
+                        {language === "en" ? "Featured" : language === "zh" ? "精选" : "Nổi bật"}
+                      </Badge>
+                    </div>
 
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="font-bold text-[#0e1a13]">{formatCurrency(product.price, language)}</span>
-                    {product.originalPrice && (
-                      <span className="text-sm text-[#51946b] line-through">
-                        {formatCurrency(product.originalPrice, language)}
-                      </span>
-                    )}
-                  </div>
+                    <Link href={`/products/${product.slug}`}>
+                      <h3 className="font-semibold text-[#0e1a13] mb-2 hover:text-[#39e079] transition-colors">
+                        {product.name}
+                      </h3>
+                    </Link>
 
-                  <Button className="w-full bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
-                    {language === "en" ? "Add to Cart" : language === "zh" ? "加入购物车" : "Thêm vào giỏ"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <p className="text-sm text-[#51946b] mb-2">{product.category.name}</p>
+
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-[#51946b] ml-1">
+                          {product.rating} ({product.downloads})
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="font-bold text-[#0e1a13]">{formatCurrency(Number(product.price), language)}</span>
+                    </div>
+
+                    <Button className="w-full bg-[#39e079] text-[#0e1a13] hover:bg-[#39e079]/90">
+                      {language === "en" ? "Add to Cart" : language === "zh" ? "加入购物车" : "Thêm vào giỏ"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -285,8 +488,8 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <Link key={category.id} href={`/categories/${category.id}`}>
+            {(categories.length > 0 ? categories : mockCategories).map((category) => (
+              <Link key={category.id} href={`/categories/${category.slug || category.id}`}>
                 <Card className="border-[#d1e6d9] hover:shadow-lg transition-all group cursor-pointer">
                   <CardContent className="p-6 text-center">
                     <div className="relative w-16 h-16 mx-auto mb-4 overflow-hidden rounded-full">
@@ -302,7 +505,7 @@ export default function HomePage() {
                     </h3>
                     <p className="text-sm text-[#51946b] mb-2">{category.description}</p>
                     <Badge variant="secondary" className="bg-[#e8f2ec] text-[#51946b]">
-                      {category.count} {language === "en" ? "models" : language === "zh" ? "个模型" : "mô hình"}
+                      {category.count || category._count?.products || 0} {language === "en" ? "models" : language === "zh" ? "个模型" : "mô hình"}
                     </Badge>
                   </CardContent>
                 </Card>

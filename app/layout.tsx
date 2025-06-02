@@ -6,6 +6,10 @@ import { Header } from "@/components/header"
 import { LanguageProvider } from "@/hooks/use-language"
 import { Footer } from "@/components/footer"
 
+import { AuthProvider } from "@/hooks/useAuth"
+import { CartProvider } from "@/hooks/useCart"
+import { WishlistProvider } from "@/hooks/useWishlist"
+
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "700", "800"],
@@ -33,11 +37,20 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={`${plusJakartaSans.variable} ${notoSans.variable} font-sans antialiased`}>
-        <LanguageProvider>
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </LanguageProvider>
+
+        <AuthProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <LanguageProvider>
+                <Header />
+                <main className="min-h-screen">
+                  {children}
+                </main>
+                <Footer />
+              </LanguageProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   )
