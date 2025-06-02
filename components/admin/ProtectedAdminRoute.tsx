@@ -16,26 +16,41 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children }) =
 
   useEffect(() => {
     const checkAdminAccess = async () => {
+      console.log('ProtectedAdminRoute - Debug:', {
+        loading,
+        user: user ? { id: user.id, email: user.email, role: (user as any).role } : null,
+        isChecking
+      });
+      
       if (!loading) {
         if (!user) {
+          console.log('ProtectedAdminRoute - No user, redirecting to login');
           // Redirect to login if not authenticated
           router.push('/auth/login?redirect=/admin');
           return;
         }
 
         // Check if user has admin role
-        // For now, we'll check if user email contains 'admin' or has admin property
-        // This should be replaced with proper role checking from backend
+        // Check for both 'ADMIN' and 'admin' role values for compatibility
         const isAdmin = user.email?.includes('admin') || 
+                       (user as any).role === 'ADMIN' || 
                        (user as any).role === 'admin' || 
                        (user as any).isAdmin === true;
 
+        console.log('ProtectedAdminRoute - Admin check:', {
+          email: user.email,
+          role: (user as any).role,
+          isAdmin
+        });
+
         if (!isAdmin) {
+          console.log('ProtectedAdminRoute - Not admin, redirecting to dashboard');
           // Redirect to main dashboard if not admin
           router.push('/dashboard');
           return;
         }
 
+        console.log('ProtectedAdminRoute - Admin access granted, setting isChecking to false');
         setIsChecking(false);
       }
     };

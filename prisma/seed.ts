@@ -247,7 +247,7 @@ async function main() {
   // Products created successfully
 
   // Create a sample user
-  // Create demo user with hashed password
+  // Create a demo user
   const hashedPassword = await hashPassword('password123')
   const user = await prisma.user.upsert({
     where: { email: 'demo@example.com' },
@@ -260,7 +260,21 @@ async function main() {
     }
   })
 
-  // User created successfully
+  // Create admin user
+  const adminPassword = await hashPassword('admin123')
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@3dstore.com' },
+    update: {},
+    create: {
+      email: 'admin@3dstore.com',
+      name: 'Admin User',
+      password: adminPassword,
+      role: 'ADMIN',
+      avatar: '/images/avatars/admin-user.jpg'
+    }
+  })
+
+  // Users created successfully
 
   // Create sample cart items
   await prisma.cartItem.upsert({

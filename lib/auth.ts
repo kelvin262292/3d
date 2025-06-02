@@ -90,6 +90,7 @@ export async function getCurrentUser(request: NextRequest) {
         email: true,
         name: true,
         avatar: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
       },

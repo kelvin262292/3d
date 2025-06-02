@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { getCurrentUser } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
@@ -33,9 +31,9 @@ export async function GET(request: NextRequest) {
 // POST /api/banners - Tạo banner mới (chỉ admin)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getCurrentUser(request);
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!user || user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -79,9 +77,9 @@ export async function POST(request: NextRequest) {
 // PUT /api/banners - Cập nhật banner (chỉ admin)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getCurrentUser(request);
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!user || user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -126,9 +124,9 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/banners - Xóa banner (chỉ admin)
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getCurrentUser(request);
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!user || user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
