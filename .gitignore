@@ -26,3 +26,50 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /src/generated/prisma
+
+# IDE configs
+.idea/
+.cursor/
+.lingma/
+.trae/
+.vscode/
+
+# Test files and debug scripts
+test-*.ps1
+test-*.js
+debug-*.js
+seed-*.js
+create-admin.js
+test-admin.js
+
+# Backup files
+*.backup
+*.bak
+
+# History and temp folders
+.history/
+Downloads/
+Users/
+temp/
+tmp/
+
+# Test results
+test-results/
+playwright-report/
+
+# Log files
+*.log
+api-test-result.txt
+manual-test-report.md
+console-log-audit.md
+mock-data-audit.md
+admin-test-manual.md
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
